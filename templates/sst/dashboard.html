@@ -1,0 +1,97 @@
+{% extends "base.html" %}
+{% block title %}SST Admin Dashboard - QMUL Issues & Feedback{% endblock %}
+
+{% block content %}
+<h4 class="mb-4"><i class="bi bi-shield-lock me-2"></i>SST Admin Dashboard</h4>
+
+<!-- TICKETS SECTION -->
+<div class="card mb-4">
+    <div class="card-header bg-white d-flex justify-content-between align-items-center">
+        <h6 class="mb-0"><i class="bi bi-ticket-detailed me-2"></i>All Support Tickets ({{ tickets|length }})</h6>
+        <form class="d-flex gap-2" method="GET">
+            <select name="status" class="form-select form-select-sm" style="width:auto;" onchange="this.form.submit()">
+                <option value="">All Statuses</option>
+                <option value="New" {% if status_filter == 'New' %}selected{% endif %}>New</option>
+                <option value="In Progress" {% if status_filter == 'In Progress' %}selected{% endif %}>In Progress</option>
+                <option value="Resolved" {% if status_filter == 'Resolved' %}selected{% endif %}>Resolved</option>
+                <option value="Closed" {% if status_filter == 'Closed' %}selected{% endif %}>Closed</option>
+            </select>
+            <select name="category" class="form-select form-select-sm" style="width:auto;" onchange="this.form.submit()">
+                <option value="">All Categories</option>
+                {% for cat in categories %}
+                <option value="{{ cat.category_id }}" {% if category_filter == cat.category_id|string %}selected{% endif %}>{{ cat.name }}</option>
+                {% endfor %}
+            </select>
+        </form>
+    </div>
+    <div class="card-body p-0">
+        {% if tickets %}
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead>
+                    <tr><th>ID</th><th>Student</th><th>Title</th><th>Category</th><th>Status</th><th>Date</th><th></th></tr>
+                </thead>
+                <tbody>
+                    {% for ticket in tickets %}
+                    <tr>
+                        <td><strong>#{{ ticket.ticket_id }}</strong></td>
+                        <td>{{ ticket.creator_name }}</td>
+                        <td>{{ ticket.title }}</td>
+                        <td><span class="text-muted">{{ ticket.category_name }}</span></td>
+                        <td>
+                            {% if ticket.status == 'New' %}<span class="badge badge-new">New</span>
+                            {% elif ticket.status == 'In Progress' %}<span class="badge badge-in-progress">In Progress</span>
+                            {% elif ticket.status == 'Resolved' %}<span class="badge badge-resolved">Resolved</span>
+                            {% elif ticket.status == 'Closed' %}<span class="badge badge-closed">Closed</span>{% endif %}
+                        </td>
+                        <td class="text-muted small">{{ ticket.created_at[:10] }}</td>
+                        <td><a href="{{ url_for('sst_manage_ticket', ticket_id=ticket.ticket_id) }}" class="btn btn-sm btn-outline-primary">Manage</a></td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="text-center py-4 text-muted">No tickets found.</div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- EC APPLICATIONS SECTION -->
+<div class="card">
+    <div class="card-header bg-white">
+        <h6 class="mb-0"><i class="bi bi-file-earmark-text me-2"></i>EC Applications ({{ ecs|length }})</h6>
+    </div>
+    <div class="card-body p-0">
+        {% if ecs %}
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead>
+                    <tr><th>ID</th><th>Student</th><th>Module</th><th>Status</th><th>Submitted</th><th></th></tr>
+                </thead>
+                <tbody>
+                    {% for ec in ecs %}
+                    <tr>
+                        <td><strong>#{{ ec.ec_id }}</strong></td>
+                        <td>{{ ec.student_name }}</td>
+                        <td>{{ ec.module_code }}</td>
+                        <td>
+                            {% if ec.status == 'Submitted' %}<span class="badge badge-submitted">Submitted</span>
+                            {% elif ec.status == 'Under Review' %}<span class="badge badge-under-review">Under Review</span>
+                            {% elif ec.status == 'Approved' %}<span class="badge badge-approved">Approved</span>
+                            {% elif ec.status == 'Rejected' %}<span class="badge badge-rejected">Rejected</span>
+                            {% elif ec.status == 'More Evidence Required' %}<span class="badge badge-more-evidence">More Evidence</span>{% endif %}
+                        </td>
+                        <td class="text-muted small">{{ ec.created_at[:10] }}</td>
+                        <td><a href="{{ url_for('sst_review_ec', ec_id=ec.ec_id) }}" class="btn btn-sm btn-outline-primary">Review</a></td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="text-center py-4 text-muted">No EC applications found.</div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

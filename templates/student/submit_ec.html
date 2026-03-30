@@ -1,0 +1,93 @@
+{% extends "base.html" %}
+{% block title %}Submit EC Application - QMUL Issues & Feedback{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="d-flex align-items-center mb-4">
+            <a href="{{ url_for('student_dashboard') }}" class="btn btn-sm btn-outline-secondary me-3">
+                <i class="bi bi-arrow-left"></i> Back
+            </a>
+            <h4 class="mb-0"><i class="bi bi-file-earmark-text me-2"></i>Submit EC Application</h4>
+        </div>
+
+        <div class="alert alert-info">
+            <i class="bi bi-info-circle me-1"></i>
+            Extenuating Circumstances applications must include a reason, description, and supporting evidence where possible.
+        </div>
+
+        <div class="card">
+            <div class="card-body p-4">
+                <form method="POST" enctype="multipart/form-data">
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="year_group" class="form-label">Year Group <span class="text-danger">*</span></label>
+                            <select class="form-select" id="year_group" name="year_group" required>
+                                <option value="">-- Select --</option>
+                                <option value="Year 1">Year 1</option>
+                                <option value="Year 2">Year 2</option>
+                                <option value="Year 3">Year 3</option>
+                                <option value="Year 4">Year 4</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="module_id" class="form-label">Module <span class="text-danger">*</span></label>
+                            <select class="form-select" id="module_id" name="module_id" required>
+                                <option value="">-- Select module --</option>
+                                {% for mod in modules %}
+                                <option value="{{ mod.module_id }}">{{ mod.module_code }} - {{ mod.title }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="assessment_id" class="form-label">Assessment <span class="text-danger">*</span></label>
+                            <select class="form-select" id="assessment_id" name="assessment_id" required>
+                                <option value="">-- Select assessment --</option>
+                                {% for assess in assessments %}
+                                <option value="{{ assess.assessment_id }}">{{ assess.name }} (Due: {{ assess.due_date }})</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="reason" class="form-label">Reason <span class="text-danger">*</span></label>
+                        <select class="form-select" id="reason" name="reason" required>
+                            <option value="">-- Select reason --</option>
+                            <option value="Medical">Medical</option>
+                            <option value="Bereavement">Bereavement</option>
+                            <option value="Personal">Personal / Family Emergency</option>
+                            <option value="Mental Health">Mental Health</option>
+                            <option value="Other">Other</option>
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="description" class="form-label">Description <span class="text-danger">*</span></label>
+                        <textarea class="form-control" id="description" name="description" rows="5"
+                                  placeholder="Explain the circumstances that have affected your ability to complete the assessment."
+                                  required></textarea>
+                    </div>
+
+                    <div class="mb-4">
+                        <label for="evidence" class="form-label">Supporting Evidence</label>
+                        <input class="form-control" type="file" id="evidence" name="evidence"
+                               accept=".pdf,.png,.jpg,.jpeg,.doc,.docx">
+                        <div class="form-text">Upload medical certificates, letters, or other supporting documents. Accepted: PDF, PNG, JPEG, DOC.</div>
+                    </div>
+
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-primary" style="background-color: #003B5C; border-color: #003B5C;">
+                            <i class="bi bi-send me-1"></i> Submit EC Application
+                        </button>
+                        <a href="{{ url_for('student_dashboard') }}" class="btn btn-outline-secondary">Cancel</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

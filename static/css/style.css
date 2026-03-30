@@ -1,0 +1,79 @@
+/* QMUL Issues & Feedback - Custom Styles */
+
+/* Status badges */
+.badge-new         { background-color: #0d6efd; color: #fff; }
+.badge-in-progress { background-color: #fd7e14; color: #fff; }
+.badge-resolved    { background-color: #198754; color: #fff; }
+.badge-closed      { background-color: #6c757d; color: #fff; }
+
+.badge-submitted          { background-color: #0d6efd; color: #fff; }
+.badge-under-review       { background-color: #fd7e14; color: #fff; }
+.badge-approved           { background-color: #198754; color: #fff; }
+.badge-rejected           { background-color: #dc3545; color: #fff; }
+.badge-more-evidence      { background-color: #6f42c1; color: #fff; }
+
+/* Card hover effect for ticket/EC list items */
+.ticket-card:hover,
+.ec-card:hover {
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    transform: translateY(-1px);
+    transition: all 0.15s ease;
+}
+
+/* Timeline for status history */
+.timeline-item {
+    position: relative;
+    padding-left: 28px;
+    padding-bottom: 16px;
+    border-left: 2px solid #dee2e6;
+    margin-left: 8px;
+}
+.timeline-item:last-child {
+    border-left-color: transparent;
+}
+.timeline-item::before {
+    content: '';
+    position: absolute;
+    left: -6px;
+    top: 4px;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background-color: #003B5C;
+    border: 2px solid #fff;
+}
+
+/* Login page */
+.login-container {
+    max-width: 420px;
+    margin: 80px auto;
+}
+.login-header {
+    background-color: #003B5C;
+    color: white;
+    padding: 24px;
+    border-radius: 8px 8px 0 0;
+    text-align: center;
+}
+
+/* Stats cards on reports page */
+.stat-card {
+    text-align: center;
+    padding: 20px;
+}
+.stat-card .stat-number {
+    font-size: 2rem;
+    font-weight: 700;
+    color: #003B5C;
+}
+.stat-card .stat-label {
+    font-size: 0.85rem;
+    color: #6c757d;
+}
+
+/* Table improvements */
+.table th {
+    background-color: #f8f9fa;
+    font-weight: 600;
+    font-size: 0.9rem;
+}

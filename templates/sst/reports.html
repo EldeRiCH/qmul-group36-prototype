@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+{% block title %}Reports - QMUL Issues & Feedback{% endblock %}
+
+{% block content %}
+<h4 class="mb-4"><i class="bi bi-bar-chart me-2"></i>Reports</h4>
+
+<!-- Ticket stats -->
+<div class="card mb-4">
+    <div class="card-header bg-white"><h6 class="mb-0">Tickets by Category and Status</h6></div>
+    <div class="card-body">
+        {% if ticket_stats %}
+        <div class="table-responsive">
+            <table class="table table-sm">
+                <thead><tr><th>Category</th><th>Status</th><th>Count</th></tr></thead>
+                <tbody>
+                    {% for row in ticket_stats %}
+                    <tr>
+                        <td>{{ row.category or 'Uncategorised' }}</td>
+                        <td>
+                            {% if row.status == 'New' %}<span class="badge badge-new">{{ row.status }}</span>
+                            {% elif row.status == 'In Progress' %}<span class="badge badge-in-progress">{{ row.status }}</span>
+                            {% elif row.status == 'Resolved' %}<span class="badge badge-resolved">{{ row.status }}</span>
+                            {% elif row.status == 'Closed' %}<span class="badge badge-closed">{{ row.status }}</span>{% endif %}
+                        </td>
+                        <td><strong>{{ row.count }}</strong></td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <p class="text-muted">No ticket data available.</p>
+        {% endif %}
+    </div>
+</div>
+
+<!-- EC stats -->
+<div class="card">
+    <div class="card-header bg-white"><h6 class="mb-0">EC Applications by Module and Status</h6></div>
+    <div class="card-body">
+        {% if ec_stats %}
+        <div class="table-responsive">
+            <table class="table table-sm">
+                <thead><tr><th>Module</th><th>Status</th><th>Count</th></tr></thead>
+                <tbody>
+                    {% for row in ec_stats %}
+                    <tr>
+                        <td>{{ row.module_code or 'Unknown' }}</td>
+                        <td>
+                            {% if row.status == 'Submitted' %}<span class="badge badge-submitted">{{ row.status }}</span>
+                            {% elif row.status == 'Under Review' %}<span class="badge badge-under-review">{{ row.status }}</span>
+                            {% elif row.status == 'Approved' %}<span class="badge badge-approved">{{ row.status }}</span>
+                            {% elif row.status == 'Rejected' %}<span class="badge badge-rejected">{{ row.status }}</span>
+                            {% elif row.status == 'More Evidence Required' %}<span class="badge badge-more-evidence">{{ row.status }}</span>{% endif %}
+                        </td>
+                        <td><strong>{{ row.count }}</strong></td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <p class="text-muted">No EC data available.</p>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

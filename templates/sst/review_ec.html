@@ -1,0 +1,136 @@
+{% extends "base.html" %}
+{% block title %}Review EC #{{ ec.ec_id }} - QMUL Issues & Feedback{% endblock %}
+
+{% block content %}
+<div class="d-flex align-items-center mb-4">
+    <a href="{{ url_for('sst_dashboard') }}" class="btn btn-sm btn-outline-secondary me-3"><i class="bi bi-arrow-left"></i> Back</a>
+    <h4 class="mb-0">Review EC Application #{{ ec.ec_id }}</h4>
+    <span class="ms-3">
+        {% if ec.status == 'Submitted' %}<span class="badge badge-submitted fs-6">Submitted</span>
+        {% elif ec.status == 'Under Review' %}<span class="badge badge-under-review fs-6">Under Review</span>
+        {% elif ec.status == 'Approved' %}<span class="badge badge-approved fs-6">Approved</span>
+        {% elif ec.status == 'Rejected' %}<span class="badge badge-rejected fs-6">Rejected</span>
+        {% elif ec.status == 'More Evidence Required' %}<span class="badge badge-more-evidence fs-6">More Evidence</span>{% endif %}
+    </span>
+</div>
+
+<div class="row">
+    <div class="col-lg-8">
+        <div class="card mb-4">
+            <div class="card-header bg-white"><h6 class="mb-0">Application Details</h6></div>
+            <div class="card-body">
+                <div class="row mb-2"><div class="col-sm-3 text-muted">Student</div><div class="col-sm-9">{{ ec.student_name }} ({{ ec.student_email }})</div></div>
+                <div class="row mb-2"><div class="col-sm-3 text-muted">Module</div><div class="col-sm-9">{{ ec.module_code }} - {{ ec.module_title }}</div></div>
+                <div class="row mb-2"><div class="col-sm-3 text-muted">Assessment</div><div class="col-sm-9">{{ ec.assessment_name }}</div></div>
+                <div class="row mb-2"><div class="col-sm-3 text-muted">Year Group</div><div class="col-sm-9">{{ ec.year_group }}</div></div>
+                <div class="row mb-2"><div class="col-sm-3 text-muted">Reason</div><div class="col-sm-9"><span class="badge bg-secondary">{{ ec.reason }}</span></div></div>
+                <div class="row mb-2"><div class="col-sm-3 text-muted">Description</div><div class="col-sm-9"><div class="bg-light p-3 rounded">{{ ec.description }}</div></div></div>
+                <div class="row"><div class="col-sm-3 text-muted">Submitted</div><div class="col-sm-9">{{ ec.created_at[:10] }} at {{ ec.created_at[11:16] }}</div></div>
+            </div>
+        </div>
+
+        {% if attachments %}
+        <div class="card mb-4">
+            <div class="card-header bg-white"><h6 class="mb-0">Evidence / Attachments</h6></div>
+            <div class="card-body">
+                {% for att in attachments %}
+                <div class="d-flex align-items-center gap-2 mb-2"><i class="bi bi-paperclip"></i> {{ att.file_name }} <span class="text-muted small">{{ att.uploaded_at[:10] }}</span></div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Decision form -->
+        <div class="card mb-4 border-primary">
+            <div class="card-header bg-white"><h6 class="mb-0"><i class="bi bi-check2-square me-1"></i>Make Decision</h6></div>
+            <div class="card-body">
+                <form method="POST">
+                    <input type="hidden" name="action" value="update_status">
+                    <div class="mb-3">
+                        <label class="form-label">Decision</label>
+                        <div class="d-flex gap-2 flex-wrap">
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="new_status" value="Under Review" id="st-review">
+                                <label class="form-check-label" for="st-review">Under Review</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="new_status" value="Approved" id="st-approve">
+                                <label class="form-check-label text-success" for="st-approve"><strong>Approve</strong></label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="new_status" value="Rejected" id="st-reject">
+                                <label class="form-check-label text-danger" for="st-reject"><strong>Reject</strong></label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="new_status" value="More Evidence Required" id="st-more">
+                                <label class="form-check-label text-purple" for="st-more">Request More Evidence</label>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Decision Notes</label>
+                        <textarea name="decision_notes" class="form-control" rows="3" placeholder="Provide a reason for the decision..."></textarea>
+                    </div>
+                    <button type="submit" class="btn btn-primary" style="background-color: #003B5C; border-color: #003B5C;">Submit Decision</button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Add comment -->
+        <div class="card mb-4">
+            <div class="card-header bg-white"><h6 class="mb-0"><i class="bi bi-chat-dots me-1"></i>Add Comment</h6></div>
+            <div class="card-body">
+                <form method="POST">
+                    <input type="hidden" name="action" value="add_comment">
+                    <textarea name="comment" class="form-control mb-2" rows="3" placeholder="Write a comment..." required></textarea>
+                    <div class="d-flex gap-3 align-items-center">
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="visibility" value="public" id="vis-pub" checked>
+                            <label class="form-check-label" for="vis-pub">Visible to student</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="visibility" value="internal" id="vis-int">
+                            <label class="form-check-label" for="vis-int">Internal only</label>
+                        </div>
+                        <button type="submit" class="btn btn-sm btn-outline-primary ms-auto">Post</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Comments -->
+        <div class="card">
+            <div class="card-header bg-white"><h6 class="mb-0">Comments ({{ comments|length }})</h6></div>
+            <div class="card-body">
+                {% for comment in comments %}
+                <div class="border-bottom pb-3 mb-3">
+                    <div class="d-flex justify-content-between">
+                        <div><strong>{{ comment.author_name }}</strong>
+                            {% if comment.visibility == 'internal' %}<span class="badge bg-secondary ms-1">Internal</span>{% endif %}
+                        </div>
+                        <span class="text-muted small">{{ comment.created_at[:10] }} {{ comment.created_at[11:16] }}</span>
+                    </div>
+                    <p class="mb-0 mt-1">{{ comment.content }}</p>
+                </div>
+                {% endfor %}
+                {% if not comments %}<p class="text-muted">No comments yet.</p>{% endif %}
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-4">
+        <div class="card">
+            <div class="card-header bg-white"><h6 class="mb-0">Status History</h6></div>
+            <div class="card-body">
+                {% for change in history %}
+                <div class="timeline-item">
+                    <strong>{{ change.new_status }}</strong>
+                    <div class="text-muted small">{{ change.changed_by_name }}</div>
+                    <div class="text-muted small">{{ change.changed_at[:10] }} {{ change.changed_at[11:16] }}</div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

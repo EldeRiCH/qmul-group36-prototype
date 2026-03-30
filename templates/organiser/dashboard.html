@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% block title %}EC Outcomes - QMUL Issues & Feedback{% endblock %}
+
+{% block content %}
+<h4 class="mb-4"><i class="bi bi-mortarboard me-2"></i>EC Outcomes for My Modules</h4>
+
+{% if modules %}
+<div class="mb-3">
+    <span class="text-muted">Showing EC applications for: </span>
+    {% for mod in modules %}
+    <span class="badge bg-light text-dark border me-1">{{ mod.module_code }} - {{ mod.title }}</span>
+    {% endfor %}
+</div>
+{% endif %}
+
+<div class="card">
+    <div class="card-body p-0">
+        {% if ecs %}
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead>
+                    <tr><th>EC ID</th><th>Student</th><th>Module</th><th>Reason</th><th>Status</th><th>Decision Date</th></tr>
+                </thead>
+                <tbody>
+                    {% for ec in ecs %}
+                    <tr>
+                        <td><strong>#{{ ec.ec_id }}</strong></td>
+                        <td>{{ ec.student_name }}</td>
+                        <td>{{ ec.module_code }}</td>
+                        <td>{{ ec.reason }}</td>
+                        <td>
+                            {% if ec.status == 'Submitted' %}<span class="badge badge-submitted">Submitted</span>
+                            {% elif ec.status == 'Under Review' %}<span class="badge badge-under-review">Under Review</span>
+                            {% elif ec.status == 'Approved' %}<span class="badge badge-approved">Approved</span>
+                            {% elif ec.status == 'Rejected' %}<span class="badge badge-rejected">Rejected</span>
+                            {% elif ec.status == 'More Evidence Required' %}<span class="badge badge-more-evidence">More Evidence</span>{% endif %}
+                        </td>
+                        <td class="text-muted small">{{ ec.decision_date[:10] if ec.decision_date else 'Pending' }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="text-center py-4 text-muted">
+            <i class="bi bi-file-earmark" style="font-size: 2rem;"></i>
+            <p class="mt-2">No EC applications found for your modules.</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

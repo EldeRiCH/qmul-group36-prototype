@@ -1,0 +1,132 @@
+{% extends "base.html" %}
+{% block title %}Student Dashboard - QMUL Issues & Feedback{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h4 class="mb-0"><i class="bi bi-house-door me-2"></i>My Dashboard</h4>
+    <div>
+        <a href="{{ url_for('submit_ticket') }}" class="btn btn-primary btn-sm" style="background-color: #003B5C; border-color: #003B5C;">
+            <i class="bi bi-plus-circle me-1"></i> New Ticket
+        </a>
+        <a href="{{ url_for('submit_ec') }}" class="btn btn-outline-primary btn-sm">
+            <i class="bi bi-file-earmark-plus me-1"></i> New EC Application
+        </a>
+    </div>
+</div>
+
+<!-- MY TICKETS -->
+<div class="card mb-4">
+    <div class="card-header bg-white">
+        <h6 class="mb-0"><i class="bi bi-ticket-detailed me-2"></i>My Support Tickets ({{ tickets|length }})</h6>
+    </div>
+    <div class="card-body p-0">
+        {% if tickets %}
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Title</th>
+                        <th>Category</th>
+                        <th>Status</th>
+                        <th>Submitted</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for ticket in tickets %}
+                    <tr>
+                        <td><strong>#{{ ticket.ticket_id }}</strong></td>
+                        <td>{{ ticket.title }}</td>
+                        <td>
+                            {% set cat = ticket.category_id %}
+                            <!-- Category will show from join if we add it -->
+                            <span class="text-muted">Cat {{ ticket.category_id }}</span>
+                        </td>
+                        <td>
+                            {% if ticket.status == 'New' %}
+                                <span class="badge badge-new">New</span>
+                            {% elif ticket.status == 'In Progress' %}
+                                <span class="badge badge-in-progress">In Progress</span>
+                            {% elif ticket.status == 'Resolved' %}
+                                <span class="badge badge-resolved">Resolved</span>
+                            {% elif ticket.status == 'Closed' %}
+                                <span class="badge badge-closed">Closed</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-muted small">{{ ticket.created_at[:10] }}</td>
+                        <td>
+                            <a href="{{ url_for('student_view_ticket', ticket_id=ticket.ticket_id) }}"
+                               class="btn btn-sm btn-outline-secondary">View</a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="text-center py-4 text-muted">
+            <i class="bi bi-inbox" style="font-size: 2rem;"></i>
+            <p class="mt-2">No tickets submitted yet.</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- MY EC APPLICATIONS -->
+<div class="card">
+    <div class="card-header bg-white">
+        <h6 class="mb-0"><i class="bi bi-file-earmark-text me-2"></i>My EC Applications ({{ ecs|length }})</h6>
+    </div>
+    <div class="card-body p-0">
+        {% if ecs %}
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Module</th>
+                        <th>Reason</th>
+                        <th>Status</th>
+                        <th>Submitted</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for ec in ecs %}
+                    <tr>
+                        <td><strong>#{{ ec.ec_id }}</strong></td>
+                        <td>{{ ec.module_code }} - {{ ec.module_title }}</td>
+                        <td>{{ ec.reason }}</td>
+                        <td>
+                            {% if ec.status == 'Submitted' %}
+                                <span class="badge badge-submitted">Submitted</span>
+                            {% elif ec.status == 'Under Review' %}
+                                <span class="badge badge-under-review">Under Review</span>
+                            {% elif ec.status == 'Approved' %}
+                                <span class="badge badge-approved">Approved</span>
+                            {% elif ec.status == 'Rejected' %}
+                                <span class="badge badge-rejected">Rejected</span>
+                            {% elif ec.status == 'More Evidence Required' %}
+                                <span class="badge badge-more-evidence">More Evidence</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-muted small">{{ ec.created_at[:10] }}</td>
+                        <td>
+                            <a href="{{ url_for('student_view_ec', ec_id=ec.ec_id) }}"
+                               class="btn btn-sm btn-outline-secondary">View</a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="text-center py-4 text-muted">
+            <i class="bi bi-file-earmark" style="font-size: 2rem;"></i>
+            <p class="mt-2">No EC applications submitted yet.</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
