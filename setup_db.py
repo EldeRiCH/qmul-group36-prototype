@@ -160,9 +160,9 @@ def setup_database():
 
     # Teams
     teams = [
-        ('Student Support Team', 'sst'),
-        ('EECS IT Services',     'its'),
-        ('EE Lab Technicians',   'lab'),
+        ('Student Support Team', 'SST'),
+        ('EECS IT Services',     'ITS'),
+        ('EE Lab Technicians',   'LAB'),
     ]
     c.executemany('INSERT INTO teams (name, team_type) VALUES (?, ?)', teams)
 
