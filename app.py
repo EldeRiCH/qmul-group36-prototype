@@ -402,6 +402,7 @@ def sst_dashboard():
     """SST Admin home: all tickets and EC applications."""
     status_filter = request.args.get('status', '')
     category_filter = request.args.get('category', '')
+    search_query = request.args.get('search', '')
 
     # Build ticket query with optional filters
     ticket_query = (
@@ -417,6 +418,10 @@ def sst_dashboard():
     if category_filter:
         ticket_query += ' AND t.category_id = ?'
         ticket_args.append(category_filter)
+    if search_query:
+        ticket_query += ' AND (u.name LIKE ? OR CAST(t.ticket_id AS TEXT) = ?)'
+        ticket_args.append(f'%{search_query}%')
+        ticket_args.append(search_query)
     ticket_query += ' ORDER BY t.created_at DESC'
 
     tickets = query_db(ticket_query, ticket_args)
@@ -434,7 +439,7 @@ def sst_dashboard():
 
     return render_template('sst/dashboard.html',
                            tickets=tickets, ecs=ecs, categories=categories,
-                           status_filter=status_filter, category_filter=category_filter)
+                           status_filter=status_filter, category_filter=category_filter, search_query=search_query)
 
 
 @app.route('/sst/ticket/<int:ticket_id>', methods=['GET', 'POST'])
