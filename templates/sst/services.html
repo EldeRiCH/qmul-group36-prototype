@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% block title %}Service Status - QMUL Issues & Feedback{% endblock %}
+
+{% block content %}
+<h4 class="mb-4"><i class="bi bi-activity me-2"></i>Service Status</h4>
+<p class="text-muted mb-4">Update the status of QMUL services. Changes are reflected immediately in the status bar visible to all users.</p>
+
+<div class="card">
+    <div class="card-header bg-white"><h6 class="mb-0">Current Status</h6></div>
+    <div class="card-body p-0">
+        <table class="table table-hover mb-0">
+            <thead>
+                <tr><th>Service</th><th>Status</th><th>Last Updated</th><th>Change</th></tr>
+            </thead>
+            <tbody>
+                {% for s in services %}
+                <tr>
+                    <td><strong>{{ s.name }}</strong></td>
+                    <td>
+                        {% if s.status == 'operational' %}<span class="badge bg-success">Operational</span>
+                        {% elif s.status == 'degraded' %}<span class="badge bg-warning text-dark">Degraded</span>
+                        {% elif s.status == 'outage' %}<span class="badge bg-danger">Outage</span>
+                        {% elif s.status == 'maintenance' %}<span class="badge bg-secondary">Maintenance</span>{% endif %}
+                    </td>
+                    <td class="text-muted small">{{ s.last_updated[:16].replace('T', ' ') }}</td>
+                    <td>
+                        <form method="POST" class="d-flex gap-2 align-items-center">
+                            <input type="hidden" name="service_id" value="{{ s.service_id }}">
+                            <select name="status" class="form-select form-select-sm" style="width:auto;">
+                                <option value="operational"  {% if s.status == 'operational' %}selected{% endif %}>Operational</option>
+                                <option value="degraded"     {% if s.status == 'degraded' %}selected{% endif %}>Degraded</option>
+                                <option value="outage"       {% if s.status == 'outage' %}selected{% endif %}>Outage</option>
+                                <option value="maintenance"  {% if s.status == 'maintenance' %}selected{% endif %}>Maintenance</option>
+                            </select>
+                            <button type="submit" class="btn btn-sm btn-outline-primary">Update</button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

@@ -4,30 +4,30 @@
 {% block content %}
 <h4 class="mb-4"><i class="bi bi-bar-chart me-2"></i>Reports</h4>
 
-<!-- Summary cards -->
-<div class="row mb-4">
+<!-- Summary stat cards -->
+<div class="row g-3 mb-4">
     <div class="col-md-3">
-        <div class="card text-center p-3">
-            <h2 class="mb-0">{{ ticket_stats | sum(attribute='count') }}</h2>
-            <small class="text-muted">Total Tickets</small>
+        <div class="card text-center p-3 h-100">
+            <div class="stat-number">{{ total_tickets }}</div>
+            <div class="stat-label">Total Tickets</div>
         </div>
     </div>
     <div class="col-md-3">
-        <div class="card text-center p-3 border-primary">
-            <h2 class="mb-0 text-primary">{{ ticket_stats | selectattr('status', 'equalto', 'New') | sum(attribute='count') }}</h2>
-            <small class="text-muted">New</small>
+        <div class="card text-center p-3 h-100 border-primary">
+            <div class="stat-number text-primary">{{ open_tickets }}</div>
+            <div class="stat-label">Open / In Progress</div>
         </div>
     </div>
     <div class="col-md-3">
-        <div class="card text-center p-3 border-warning">
-            <h2 class="mb-0 text-warning">{{ ticket_stats | selectattr('status', 'equalto', 'In Progress') | sum(attribute='count') }}</h2>
-            <small class="text-muted">In Progress</small>
+        <div class="card text-center p-3 h-100 border-success">
+            <div class="stat-number text-success">{{ resolved_tickets }}</div>
+            <div class="stat-label">Resolved / Closed</div>
         </div>
     </div>
     <div class="col-md-3">
-        <div class="card text-center p-3 border-success">
-            <h2 class="mb-0 text-success">{{ ticket_stats | selectattr('status', 'equalto', 'Resolved') | sum(attribute='count') }}</h2>
-            <small class="text-muted">Resolved</small>
+        <div class="card text-center p-3 h-100 border-warning">
+            <div class="stat-number" style="color:#6f42c1;">{{ total_ecs }}</div>
+            <div class="stat-label">EC Applications</div>
         </div>
     </div>
 </div>
@@ -45,10 +45,13 @@
                     <tr>
                         <td>{{ row.category or 'Uncategorised' }}</td>
                         <td>
-                            {% if row.status == 'New' %}<span class="badge badge-new">{{ row.status }}</span>
-                            {% elif row.status == 'In Progress' %}<span class="badge badge-in-progress">{{ row.status }}</span>
-                            {% elif row.status == 'Resolved' %}<span class="badge badge-resolved">{{ row.status }}</span>
-                            {% elif row.status == 'Closed' %}<span class="badge badge-closed">{{ row.status }}</span>{% endif %}
+                            {% set ticket = row %}
+                            {% if row.status == 'Open' %}<span class="badge badge-open">Open</span>
+                            {% elif row.status == 'In Progress' %}<span class="badge badge-in-progress">In Progress</span>
+                            {% elif row.status == 'Resolved' %}<span class="badge badge-resolved">Resolved</span>
+                            {% elif row.status == 'Closed' %}<span class="badge badge-closed">Closed</span>
+                            {% elif row.status == 'Withdrawn' %}<span class="badge badge-withdrawn">Withdrawn</span>
+                            {% endif %}
                         </td>
                         <td><strong>{{ row.count }}</strong></td>
                     </tr>
@@ -75,11 +78,15 @@
                     <tr>
                         <td>{{ row.module_code or 'Unknown' }}</td>
                         <td>
-                            {% if row.status == 'Submitted' %}<span class="badge badge-submitted">{{ row.status }}</span>
-                            {% elif row.status == 'Under Review' %}<span class="badge badge-under-review">{{ row.status }}</span>
-                            {% elif row.status == 'Approved' %}<span class="badge badge-approved">{{ row.status }}</span>
-                            {% elif row.status == 'Rejected' %}<span class="badge badge-rejected">{{ row.status }}</span>
-                            {% elif row.status == 'More Evidence Required' %}<span class="badge badge-more-evidence">{{ row.status }}</span>{% endif %}
+                            {% set ec = row %}
+                            {% if row.status == 'Submitted' %}<span class="badge badge-submitted">Submitted</span>
+                            {% elif row.status == 'Under Review' %}<span class="badge badge-under-review">Under Review</span>
+                            {% elif row.status == 'Approved' %}<span class="badge badge-approved">Approved</span>
+                            {% elif row.status == 'Rejected' %}<span class="badge badge-rejected">Rejected</span>
+                            {% elif row.status == 'More Evidence Needed' %}<span class="badge badge-more-evidence">More Evidence Needed</span>
+                            {% elif row.status == 'On Hold' %}<span class="badge badge-on-hold">On Hold</span>
+                            {% elif row.status == 'Withdrawn' %}<span class="badge badge-withdrawn">Withdrawn</span>
+                            {% endif %}
                         </td>
                         <td><strong>{{ row.count }}</strong></td>
                     </tr>

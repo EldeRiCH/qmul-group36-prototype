@@ -1,0 +1,7 @@
+{% if ticket.status == 'Open' %}<span class="badge badge-open">Open</span>
+{% elif ticket.status == 'In Progress' %}<span class="badge badge-in-progress">In Progress</span>
+{% elif ticket.status == 'Resolved' %}<span class="badge badge-resolved">Resolved</span>
+{% elif ticket.status == 'Closed' %}<span class="badge badge-closed">Closed</span>
+{% elif ticket.status == 'Withdrawn' %}<span class="badge badge-withdrawn">Withdrawn</span>
+{% else %}<span class="badge bg-secondary">{{ ticket.status }}</span>
+{% endif %}

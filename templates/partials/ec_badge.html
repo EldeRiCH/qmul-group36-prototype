@@ -1,0 +1,9 @@
+{% if ec.status == 'Submitted' %}<span class="badge badge-submitted">Submitted</span>
+{% elif ec.status == 'Under Review' %}<span class="badge badge-under-review">Under Review</span>
+{% elif ec.status == 'Approved' %}<span class="badge badge-approved">Approved</span>
+{% elif ec.status == 'Rejected' %}<span class="badge badge-rejected">Rejected</span>
+{% elif ec.status == 'More Evidence Needed' %}<span class="badge badge-more-evidence">More Evidence Needed</span>
+{% elif ec.status == 'On Hold' %}<span class="badge badge-on-hold">On Hold</span>
+{% elif ec.status == 'Withdrawn' %}<span class="badge badge-withdrawn">Withdrawn</span>
+{% else %}<span class="badge bg-secondary">{{ ec.status }}</span>
+{% endif %}

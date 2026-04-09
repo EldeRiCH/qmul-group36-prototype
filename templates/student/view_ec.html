@@ -7,14 +7,8 @@
         <i class="bi bi-arrow-left"></i> Back
     </a>
     <h4 class="mb-0">EC Application #{{ ec.ec_id }}</h4>
-    <span class="ms-3">
-        {% if ec.status == 'Submitted' %}<span class="badge badge-submitted fs-6">Submitted</span>
-        {% elif ec.status == 'Under Review' %}<span class="badge badge-under-review fs-6">Under Review</span>
-        {% elif ec.status == 'Approved' %}<span class="badge badge-approved fs-6">Approved</span>
-        {% elif ec.status == 'Rejected' %}<span class="badge badge-rejected fs-6">Rejected</span>
-        {% elif ec.status == 'More Evidence Required' %}<span class="badge badge-more-evidence fs-6">More Evidence Required</span>
-        {% endif %}
-    </span>
+    {% if ec.is_draft %}<span class="badge bg-secondary ms-2 fs-6">Draft</span>{% endif %}
+    <span class="ms-3">{% include 'partials/ec_badge.html' %}</span>
 </div>
 
 <div class="row">
@@ -22,31 +16,15 @@
         <div class="card mb-4">
             <div class="card-header bg-white"><h6 class="mb-0">Application Details</h6></div>
             <div class="card-body">
-                <div class="row mb-3">
-                    <div class="col-sm-4 text-muted">Module</div>
-                    <div class="col-sm-8">{{ ec.module_code }} - {{ ec.module_title }}</div>
+                <div class="row mb-3"><div class="col-sm-4 text-muted">Module</div><div class="col-sm-8">{{ ec.module_code }} — {{ ec.module_title }}</div></div>
+                <div class="row mb-3"><div class="col-sm-4 text-muted">Assessment</div><div class="col-sm-8">{{ ec.assessment_name or '—' }}</div></div>
+                <div class="row mb-3"><div class="col-sm-4 text-muted">Year Group</div><div class="col-sm-8">{{ ec.year_group or '—' }}</div></div>
+                <div class="row mb-3"><div class="col-sm-4 text-muted">Reason</div><div class="col-sm-8">{{ ec.reason }}</div></div>
+                <div class="row mb-3"><div class="col-sm-4 text-muted">Description</div>
+                    <div class="col-sm-8"><div class="bg-light p-3 rounded">{{ ec.description }}</div></div>
                 </div>
-                <div class="row mb-3">
-                    <div class="col-sm-4 text-muted">Assessment</div>
-                    <div class="col-sm-8">{{ ec.assessment_name }}</div>
-                </div>
-                <div class="row mb-3">
-                    <div class="col-sm-4 text-muted">Year Group</div>
-                    <div class="col-sm-8">{{ ec.year_group }}</div>
-                </div>
-                <div class="row mb-3">
-                    <div class="col-sm-4 text-muted">Reason</div>
-                    <div class="col-sm-8">{{ ec.reason }}</div>
-                </div>
-                <div class="row mb-3">
-                    <div class="col-sm-4 text-muted">Description</div>
-                    <div class="col-sm-8">
-                        <div class="bg-light p-3 rounded">{{ ec.description }}</div>
-                    </div>
-                </div>
-                <div class="row">
-                    <div class="col-sm-4 text-muted">Submitted</div>
-                    <div class="col-sm-8">{{ ec.created_at[:10] }} at {{ ec.created_at[11:16] }}</div>
+                <div class="row"><div class="col-sm-4 text-muted">Submitted</div>
+                    <div class="col-sm-8 text-muted small">{{ ec.created_at[:10] }} at {{ ec.created_at[11:16] }}</div>
                 </div>
             </div>
         </div>
@@ -55,7 +33,7 @@
         <div class="card mb-4">
             <div class="card-header bg-white"><h6 class="mb-0">Decision</h6></div>
             <div class="card-body">
-                <div class="alert {% if ec.status == 'Approved' %}alert-success{% elif ec.status == 'Rejected' %}alert-danger{% else %}alert-info{% endif %}">
+                <div class="alert {% if ec.status == 'Approved' %}alert-success{% elif ec.status == 'Rejected' %}alert-danger{% elif ec.status == 'On Hold' %}alert-warning{% else %}alert-info{% endif %}">
                     <strong>Outcome:</strong> {{ ec.status }}<br>
                     <strong>Notes:</strong> {{ ec.decision_notes }}
                     {% if ec.decision_date %}
@@ -66,22 +44,28 @@
         </div>
         {% endif %}
 
+        <!-- Attachments with download -->
         {% if attachments %}
         <div class="card mb-4">
-            <div class="card-header bg-white"><h6 class="mb-0">Attachments</h6></div>
+            <div class="card-header bg-white"><h6 class="mb-0"><i class="bi bi-paperclip me-1"></i>Attachments</h6></div>
             <div class="card-body">
                 {% for att in attachments %}
-                <div class="d-flex align-items-center gap-2 mb-2">
-                    <i class="bi bi-paperclip"></i>
+                <div class="d-flex align-items-center gap-3 mb-2">
+                    <i class="bi bi-file-earmark text-muted"></i>
                     <span>{{ att.file_name }}</span>
                     <span class="text-muted small">{{ att.uploaded_at[:10] }}</span>
+                    <a href="{{ url_for('download_file', attachment_id=att.attachment_id) }}"
+                       class="btn btn-sm btn-outline-secondary ms-auto">
+                        <i class="bi bi-download me-1"></i> Download
+                    </a>
                 </div>
                 {% endfor %}
             </div>
         </div>
         {% endif %}
 
-        <div class="card">
+        <!-- Comments -->
+        <div class="card mb-4">
             <div class="card-header bg-white"><h6 class="mb-0">Comments</h6></div>
             <div class="card-body">
                 {% if comments %}
@@ -99,8 +83,30 @@
                 {% endif %}
             </div>
         </div>
+
+        <!-- Submit draft / Withdraw -->
+        <div class="d-flex gap-3">
+            {% if ec.is_draft %}
+            <form method="POST" action="{{ url_for('student_submit_draft', ec_id=ec.ec_id) }}">
+                <button type="submit" class="btn btn-primary" style="background-color:#003B5C;border-color:#003B5C;"
+                        onclick="return confirm('Submit this EC application now?')">
+                    <i class="bi bi-send me-1"></i> Submit Now
+                </button>
+            </form>
+            {% endif %}
+
+            {% if ec.status not in ('Approved', 'Rejected', 'Withdrawn') and not ec.is_draft %}
+            <form method="POST" action="{{ url_for('student_withdraw_ec', ec_id=ec.ec_id) }}">
+                <button type="submit" class="btn btn-outline-danger btn-sm"
+                        onclick="return confirm('Are you sure you want to withdraw this EC application?')">
+                    <i class="bi bi-x-circle me-1"></i> Withdraw Application
+                </button>
+            </form>
+            {% endif %}
+        </div>
     </div>
 
+    <!-- Status timeline -->
     <div class="col-lg-4">
         <div class="card">
             <div class="card-header bg-white"><h6 class="mb-0">Status History</h6></div>
@@ -109,6 +115,7 @@
                 <div class="timeline-item">
                     <strong>{{ change.new_status }}</strong>
                     <div class="text-muted small">{{ change.changed_by_name }}</div>
+                    {% if change.notes %}<div class="text-muted small fst-italic">{{ change.notes }}</div>{% endif %}
                     <div class="text-muted small">{{ change.changed_at[:10] }} {{ change.changed_at[11:16] }}</div>
                 </div>
                 {% endfor %}

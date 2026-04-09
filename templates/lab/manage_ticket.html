@@ -5,12 +5,7 @@
 <div class="d-flex align-items-center mb-4">
     <a href="{{ url_for('lab_dashboard') }}" class="btn btn-sm btn-outline-secondary me-3"><i class="bi bi-arrow-left"></i> Back</a>
     <h4 class="mb-0">Lab Ticket #{{ ticket.ticket_id }}</h4>
-    <span class="ms-3">
-        {% if ticket.status == 'New' %}<span class="badge badge-new fs-6">New</span>
-        {% elif ticket.status == 'In Progress' %}<span class="badge badge-in-progress fs-6">In Progress</span>
-        {% elif ticket.status == 'Resolved' %}<span class="badge badge-resolved fs-6">Resolved</span>
-        {% elif ticket.status == 'Closed' %}<span class="badge badge-closed fs-6">Closed</span>{% endif %}
-    </span>
+    <span class="ms-3 fs-6">{% include 'partials/ticket_badge.html' %}</span>
 </div>
 
 <div class="row">
@@ -18,49 +13,72 @@
         <div class="card mb-4">
             <div class="card-header bg-white"><h6 class="mb-0">Ticket Details</h6></div>
             <div class="card-body">
-                <p><strong>Student:</strong> {{ ticket.creator_name }}</p>
-                <p><strong>Title:</strong> {{ ticket.title }}</p>
-                <p><strong>Description:</strong></p>
-                <div class="bg-light p-3 rounded mb-3">{{ ticket.description }}</div>
-                <p class="text-muted small">Submitted {{ ticket.created_at[:10] }}</p>
-                {% if ticket.resolution %}<div class="alert alert-success"><strong>Resolution:</strong> {{ ticket.resolution }}</div>{% endif %}
+                <div class="row mb-2"><div class="col-sm-3 text-muted">Student</div><div class="col-sm-9">{{ ticket.creator_name }}</div></div>
+                <div class="row mb-2"><div class="col-sm-3 text-muted">Category</div><div class="col-sm-9">{{ ticket.category_name }}</div></div>
+                <div class="row mb-2"><div class="col-sm-3 text-muted">Title</div><div class="col-sm-9">{{ ticket.title }}</div></div>
+                <div class="row mb-2"><div class="col-sm-3 text-muted">Description</div>
+                    <div class="col-sm-9"><div class="bg-light p-3 rounded">{{ ticket.description }}</div></div>
+                </div>
+                <div class="row"><div class="col-sm-3 text-muted">Submitted</div>
+                    <div class="col-sm-9 text-muted small">{{ ticket.created_at[:10] }}</div>
+                </div>
+                {% if ticket.resolution %}
+                <div class="alert alert-success mt-3"><strong>Resolution:</strong> {{ ticket.resolution }}</div>
+                {% endif %}
             </div>
         </div>
 
-        {% if attachments %}
+        <!-- Attachments with download -->
         <div class="card mb-4">
-            <div class="card-header bg-white"><h6 class="mb-0">Attachments</h6></div>
+            <div class="card-header bg-white"><h6 class="mb-0"><i class="bi bi-paperclip me-1"></i>Attachments ({{ attachments|length }})</h6></div>
             <div class="card-body">
                 {% for att in attachments %}
-                <div class="d-flex align-items-center gap-2 mb-2"><i class="bi bi-paperclip"></i> {{ att.file_name }}</div>
+                <div class="d-flex align-items-center gap-3 mb-2">
+                    <i class="bi bi-file-earmark text-muted"></i>
+                    <span>{{ att.file_name }}</span>
+                    <span class="text-muted small">{{ att.uploaded_at[:10] }}</span>
+                    <a href="{{ url_for('download_file', attachment_id=att.attachment_id) }}"
+                       class="btn btn-sm btn-outline-secondary ms-auto">
+                        <i class="bi bi-download me-1"></i> Download
+                    </a>
+                </div>
+                {% else %}
+                <p class="text-muted mb-0">No attachments.</p>
                 {% endfor %}
             </div>
         </div>
-        {% endif %}
 
+        <!-- Update Status -->
         <div class="card mb-4">
             <div class="card-header bg-white"><h6 class="mb-0">Update Status</h6></div>
             <div class="card-body">
                 <form method="POST">
                     <input type="hidden" name="action" value="update_status">
-                    <div class="row g-3">
+                    <div class="row g-3 mb-3">
                         <div class="col-md-4">
                             <select name="new_status" class="form-select" required>
-                                <option value="New" {% if ticket.status == 'New' %}selected{% endif %}>New</option>
+                                <option value="Open"        {% if ticket.status == 'Open' %}selected{% endif %}>Open</option>
                                 <option value="In Progress" {% if ticket.status == 'In Progress' %}selected{% endif %}>In Progress</option>
-                                <option value="Resolved" {% if ticket.status == 'Resolved' %}selected{% endif %}>Resolved</option>
-                                <option value="Closed" {% if ticket.status == 'Closed' %}selected{% endif %}>Closed</option>
+                                <option value="Resolved"    {% if ticket.status == 'Resolved' %}selected{% endif %}>Resolved</option>
+                                <option value="Closed"      {% if ticket.status == 'Closed' %}selected{% endif %}>Closed</option>
                             </select>
                         </div>
                         <div class="col-md-8">
-                            <input type="text" name="resolution" class="form-control" placeholder="Resolution description (required for Resolved/Closed)">
+                            <input type="text" name="resolution" class="form-control"
+                                   placeholder="Resolution (required for Resolved/Closed)"
+                                   value="{{ ticket.resolution or '' }}">
                         </div>
                     </div>
-                    <button type="submit" class="btn btn-primary btn-sm mt-3" style="background-color: #003B5C; border-color: #003B5C;">Update</button>
+                    <div class="mb-3">
+                        <input type="text" name="notes" class="form-control form-control-sm"
+                               placeholder="Optional internal note...">
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-sm" style="background-color:#003B5C;border-color:#003B5C;">Update</button>
                 </form>
             </div>
         </div>
 
+        <!-- Add Comment -->
         <div class="card mb-4">
             <div class="card-header bg-white"><h6 class="mb-0">Add Comment</h6></div>
             <div class="card-body">
@@ -72,16 +90,21 @@
             </div>
         </div>
 
+        <!-- Comments -->
         <div class="card">
-            <div class="card-header bg-white"><h6 class="mb-0">Comments</h6></div>
+            <div class="card-header bg-white"><h6 class="mb-0">Comments ({{ comments|length }})</h6></div>
             <div class="card-body">
                 {% for comment in comments %}
                 <div class="border-bottom pb-3 mb-3">
-                    <strong>{{ comment.author_name }}</strong> <span class="text-muted small">{{ comment.created_at[:10] }}</span>
+                    <div class="d-flex justify-content-between">
+                        <strong>{{ comment.author_name }}</strong>
+                        <span class="text-muted small">{{ comment.created_at[:10] }} {{ comment.created_at[11:16] }}</span>
+                    </div>
                     <p class="mb-0 mt-1">{{ comment.content }}</p>
                 </div>
+                {% else %}
+                <p class="text-muted">No comments yet.</p>
                 {% endfor %}
-                {% if not comments %}<p class="text-muted">No comments yet.</p>{% endif %}
             </div>
         </div>
     </div>
@@ -93,7 +116,9 @@
                 {% for change in history %}
                 <div class="timeline-item">
                     <strong>{{ change.new_status }}</strong>
-                    <div class="text-muted small">{{ change.changed_by_name }} · {{ change.changed_at[:10] }}</div>
+                    <div class="text-muted small">{{ change.changed_by_name }}</div>
+                    {% if change.notes %}<div class="text-muted small fst-italic">{{ change.notes }}</div>{% endif %}
+                    <div class="text-muted small">{{ change.changed_at[:10] }} {{ change.changed_at[11:16] }}</div>
                 </div>
                 {% endfor %}
             </div>

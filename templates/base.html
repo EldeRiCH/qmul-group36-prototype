@@ -10,79 +10,110 @@
 </head>
 <body>
     {% if current_user_id %}
-    <!-- NAVBAR -->
+    <!-- ── SERVICE STATUS BAR ─────────────────────────── -->
+    {% if not service_status_ok %}
+    <div class="service-status-bar bg-warning text-dark px-3 py-1 d-flex align-items-center gap-2" style="font-size:0.82rem;">
+        <i class="bi bi-exclamation-triangle-fill"></i>
+        <strong>Service disruption:</strong>
+        {% for s in services %}{% if s.status != 'operational' %}<span class="me-3">{{ s.name }} — <span class="text-uppercase fw-bold">{{ s.status }}</span></span>{% endif %}{% endfor %}
+    </div>
+    {% else %}
+    <div class="service-status-bar bg-success text-white px-3 py-1 d-flex align-items-center gap-2" style="font-size:0.82rem;">
+        <i class="bi bi-check-circle-fill"></i> All services operational
+    </div>
+    {% endif %}
+
+    <!-- ── NAVBAR ──────────────────────────────────────── -->
     <nav class="navbar navbar-expand-lg navbar-dark" style="background-color: #003B5C;">
         <div class="container-fluid">
             <a class="navbar-brand d-flex align-items-center gap-2" href="{{ url_for('dashboard') }}">
                 <i class="bi bi-mortarboard-fill"></i>
-                <span>QMUL Issues & Feedback</span>
+                <span>QMUL Issues &amp; Feedback</span>
             </a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
                 <span class="navbar-toggler-icon"></span>
             </button>
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav me-auto">
-                    <!-- Student nav -->
+
+                    <!-- Student -->
                     {% if current_user_role == 'student' %}
                     <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('student_dashboard') }}">
+                        <a class="nav-link {% if request.endpoint == 'student_dashboard' %}active{% endif %}"
+                           href="{{ url_for('student_dashboard') }}">
                             <i class="bi bi-house-door"></i> Dashboard
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('submit_ticket') }}">
-                            <i class="bi bi-plus-circle"></i> Submit Ticket
+                        <a class="nav-link {% if request.endpoint == 'submit_ticket' %}active{% endif %}"
+                           href="{{ url_for('submit_ticket') }}">
+                            <i class="bi bi-plus-circle"></i> New Ticket
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('submit_ec') }}">
-                            <i class="bi bi-file-earmark-text"></i> Submit EC
+                        <a class="nav-link {% if request.endpoint == 'submit_ec' %}active{% endif %}"
+                           href="{{ url_for('submit_ec') }}">
+                            <i class="bi bi-file-earmark-text"></i> New EC
                         </a>
                     </li>
 
-                    <!-- SST Admin nav -->
+                    <!-- SST Admin -->
                     {% elif current_user_role == 'sst_admin' %}
                     <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('sst_dashboard') }}">
+                        <a class="nav-link {% if request.endpoint == 'sst_dashboard' %}active{% endif %}"
+                           href="{{ url_for('sst_dashboard') }}">
                             <i class="bi bi-house-door"></i> Dashboard
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('sst_reports') }}">
+                        <a class="nav-link {% if request.endpoint == 'sst_reports' %}active{% endif %}"
+                           href="{{ url_for('sst_reports') }}">
                             <i class="bi bi-bar-chart"></i> Reports
                         </a>
                     </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint == 'sst_services' %}active{% endif %}"
+                           href="{{ url_for('sst_services') }}">
+                            <i class="bi bi-activity"></i> Services
+                            {% if not service_status_ok %}<span class="badge bg-warning text-dark ms-1">!</span>{% endif %}
+                        </a>
+                    </li>
 
-                    <!-- ITS Staff nav -->
+                    <!-- ITS Staff -->
                     {% elif current_user_role == 'its_staff' %}
                     <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('its_dashboard') }}">
-                            <i class="bi bi-house-door"></i> ITL Tickets
+                        <a class="nav-link {% if request.endpoint == 'its_dashboard' %}active{% endif %}"
+                           href="{{ url_for('its_dashboard') }}">
+                            <i class="bi bi-pc-display"></i> ITL Tickets
                         </a>
                     </li>
 
-                    <!-- Lab Technician nav -->
+                    <!-- Lab Technician -->
                     {% elif current_user_role == 'lab_technician' %}
                     <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('lab_dashboard') }}">
-                            <i class="bi bi-house-door"></i> Lab Tickets
+                        <a class="nav-link {% if request.endpoint == 'lab_dashboard' %}active{% endif %}"
+                           href="{{ url_for('lab_dashboard') }}">
+                            <i class="bi bi-cpu"></i> Lab Tickets
                         </a>
                     </li>
 
-                    <!-- Module Organiser nav -->
+                    <!-- Module Organiser -->
                     {% elif current_user_role == 'module_organiser' %}
                     <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('organiser_dashboard') }}">
-                            <i class="bi bi-house-door"></i> EC Outcomes
+                        <a class="nav-link {% if request.endpoint == 'organiser_dashboard' %}active{% endif %}"
+                           href="{{ url_for('organiser_dashboard') }}">
+                            <i class="bi bi-mortarboard"></i> EC Outcomes
                         </a>
                     </li>
                     {% endif %}
                 </ul>
 
                 <!-- User info + logout -->
-                <ul class="navbar-nav">
-                    <li class="nav-item d-flex align-items-center me-3">
-                        <span class="badge bg-light text-dark me-2">{{ current_user_role | replace('_', ' ') | title }}</span>
+                <ul class="navbar-nav align-items-center gap-2">
+                    <li class="nav-item d-flex align-items-center gap-2">
+                        <span class="badge bg-light text-dark">
+                            {{ current_user_role | replace('_', ' ') | title }}
+                        </span>
                         <span class="text-light small">{{ current_user_name }}</span>
                     </li>
                     <li class="nav-item">
@@ -117,7 +148,7 @@
 
     <!-- FOOTER -->
     <footer class="text-center text-muted py-3 mt-auto" style="font-size: 0.85rem;">
-        QMUL Issues & Feedback System &mdash; Group 36 Prototype &mdash; ECS506U
+        QMUL Issues &amp; Feedback System &mdash; Group 36 Prototype &mdash; ECS506U
     </footer>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>

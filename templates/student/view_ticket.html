@@ -7,17 +7,7 @@
         <i class="bi bi-arrow-left"></i> Back
     </a>
     <h4 class="mb-0">Ticket #{{ ticket.ticket_id }}</h4>
-    <span class="ms-3">
-        {% if ticket.status == 'New' %}
-            <span class="badge badge-new fs-6">New</span>
-        {% elif ticket.status == 'In Progress' %}
-            <span class="badge badge-in-progress fs-6">In Progress</span>
-        {% elif ticket.status == 'Resolved' %}
-            <span class="badge badge-resolved fs-6">Resolved</span>
-        {% elif ticket.status == 'Closed' %}
-            <span class="badge badge-closed fs-6">Closed</span>
-        {% endif %}
-    </span>
+    <span class="ms-3">{% include 'partials/ticket_badge.html' %}</span>
 </div>
 
 <div class="row">
@@ -26,11 +16,14 @@
         <div class="card mb-4">
             <div class="card-header bg-white"><h6 class="mb-0">Ticket Details</h6></div>
             <div class="card-body">
-                <p><strong>Category:</strong> {{ ticket.category_name }}</p>
-                <p><strong>Title:</strong> {{ ticket.title }}</p>
-                <p><strong>Description:</strong></p>
-                <p class="bg-light p-3 rounded">{{ ticket.description }}</p>
-                <p class="text-muted small">Submitted on {{ ticket.created_at[:10] }} at {{ ticket.created_at[11:16] }}</p>
+                <div class="row mb-2"><div class="col-sm-3 text-muted">Category</div><div class="col-sm-9">{{ ticket.category_name or '—' }}</div></div>
+                <div class="row mb-2"><div class="col-sm-3 text-muted">Title</div><div class="col-sm-9">{{ ticket.title }}</div></div>
+                <div class="row mb-2"><div class="col-sm-3 text-muted">Description</div>
+                    <div class="col-sm-9"><div class="bg-light p-3 rounded">{{ ticket.description }}</div></div>
+                </div>
+                <div class="row"><div class="col-sm-3 text-muted">Submitted</div>
+                    <div class="col-sm-9 text-muted small">{{ ticket.created_at[:10] }} at {{ ticket.created_at[11:16] }}</div>
+                </div>
                 {% if ticket.resolution %}
                 <div class="alert alert-success mt-3">
                     <strong>Resolution:</strong> {{ ticket.resolution }}
@@ -39,16 +32,20 @@
             </div>
         </div>
 
-        <!-- Attachments -->
+        <!-- Attachments with download -->
         {% if attachments %}
         <div class="card mb-4">
-            <div class="card-header bg-white"><h6 class="mb-0">Attachments</h6></div>
+            <div class="card-header bg-white"><h6 class="mb-0"><i class="bi bi-paperclip me-1"></i>Attachments</h6></div>
             <div class="card-body">
                 {% for att in attachments %}
-                <div class="d-flex align-items-center gap-2 mb-2">
-                    <i class="bi bi-paperclip"></i>
+                <div class="d-flex align-items-center gap-3 mb-2">
+                    <i class="bi bi-file-earmark text-muted"></i>
                     <span>{{ att.file_name }}</span>
                     <span class="text-muted small">{{ att.uploaded_at[:10] }}</span>
+                    <a href="{{ url_for('download_file', attachment_id=att.attachment_id) }}"
+                       class="btn btn-sm btn-outline-secondary ms-auto">
+                        <i class="bi bi-download me-1"></i> Download
+                    </a>
                 </div>
                 {% endfor %}
             </div>
@@ -74,9 +71,27 @@
                 {% endif %}
             </div>
         </div>
+
+        <!-- Withdraw button -->
+        {% if ticket.status not in ('Resolved', 'Closed', 'Withdrawn') %}
+        <div class="card border-danger">
+            <div class="card-body d-flex align-items-center justify-content-between">
+                <div>
+                    <strong>Withdraw ticket</strong>
+                    <div class="text-muted small">This will mark the ticket as withdrawn and cannot be undone.</div>
+                </div>
+                <form method="POST" action="{{ url_for('student_withdraw_ticket', ticket_id=ticket.ticket_id) }}">
+                    <button type="submit" class="btn btn-outline-danger btn-sm"
+                            onclick="return confirm('Are you sure you want to withdraw this ticket?')">
+                        <i class="bi bi-x-circle me-1"></i> Withdraw
+                    </button>
+                </form>
+            </div>
+        </div>
+        {% endif %}
     </div>
 
-    <!-- Status timeline sidebar -->
+    <!-- Status timeline -->
     <div class="col-lg-4">
         <div class="card">
             <div class="card-header bg-white"><h6 class="mb-0">Status History</h6></div>
@@ -85,6 +100,7 @@
                 <div class="timeline-item">
                     <strong>{{ change.new_status }}</strong>
                     <div class="text-muted small">{{ change.changed_by_name }}</div>
+                    {% if change.notes %}<div class="text-muted small fst-italic">{{ change.notes }}</div>{% endif %}
                     <div class="text-muted small">{{ change.changed_at[:10] }} {{ change.changed_at[11:16] }}</div>
                 </div>
                 {% endfor %}

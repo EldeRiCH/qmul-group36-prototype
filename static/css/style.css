@@ -1,18 +1,27 @@
 /* QMUL Issues & Feedback - Custom Styles */
 
-/* Status badges */
-.badge-new         { background-color: #0d6efd; color: #fff; }
+/* ── Status badges (tickets) ── */
+.badge-open        { background-color: #0d6efd; color: #fff; }
 .badge-in-progress { background-color: #fd7e14; color: #fff; }
 .badge-resolved    { background-color: #198754; color: #fff; }
 .badge-closed      { background-color: #6c757d; color: #fff; }
+.badge-withdrawn   { background-color: #343a40; color: #fff; }
 
-.badge-submitted          { background-color: #0d6efd; color: #fff; }
-.badge-under-review       { background-color: #fd7e14; color: #fff; }
-.badge-approved           { background-color: #198754; color: #fff; }
-.badge-rejected           { background-color: #dc3545; color: #fff; }
-.badge-more-evidence      { background-color: #6f42c1; color: #fff; }
+/* ── Status badges (EC applications) ── */
+.badge-submitted      { background-color: #0d6efd; color: #fff; }
+.badge-under-review   { background-color: #fd7e14; color: #fff; }
+.badge-approved       { background-color: #198754; color: #fff; }
+.badge-rejected       { background-color: #dc3545; color: #fff; }
+.badge-more-evidence  { background-color: #6f42c1; color: #fff; }
+.badge-on-hold        { background-color: #ffc107; color: #212529; }
 
-/* Card hover effect for ticket/EC list items */
+/* ── Service status bar ── */
+.service-status-bar {
+    font-size: 0.82rem;
+    letter-spacing: 0.01em;
+}
+
+/* ── Card hover effect ── */
 .ticket-card:hover,
 .ec-card:hover {
     box-shadow: 0 2px 8px rgba(0,0,0,0.1);
@@ -20,7 +29,7 @@
     transition: all 0.15s ease;
 }
 
-/* Timeline for status history */
+/* ── Status timeline ── */
 .timeline-item {
     position: relative;
     padding-left: 28px;
@@ -43,7 +52,7 @@
     border: 2px solid #fff;
 }
 
-/* Login page */
+/* ── Login page ── */
 .login-container {
     max-width: 420px;
     margin: 80px auto;
@@ -56,24 +65,31 @@
     text-align: center;
 }
 
-/* Stats cards on reports page */
+/* ── Reports stat cards ── */
 .stat-card {
     text-align: center;
     padding: 20px;
 }
-.stat-card .stat-number {
+.stat-number {
     font-size: 2rem;
     font-weight: 700;
     color: #003B5C;
 }
-.stat-card .stat-label {
+.stat-label {
     font-size: 0.85rem;
     color: #6c757d;
 }
 
-/* Table improvements */
+/* ── Table headers ── */
 .table th {
     background-color: #f8f9fa;
     font-weight: 600;
     font-size: 0.9rem;
+}
+
+/* ── Active nav link ── */
+.navbar .nav-link.active {
+    font-weight: 600;
+    text-decoration: underline;
+    text-underline-offset: 3px;
 }

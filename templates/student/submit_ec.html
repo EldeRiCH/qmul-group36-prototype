@@ -14,11 +14,13 @@
         <div class="alert alert-info">
             <i class="bi bi-info-circle me-1"></i>
             Extenuating Circumstances applications must include a reason, description, and supporting evidence where possible.
+            You can save a draft and come back to submit later.
         </div>
 
         <div class="card">
             <div class="card-body p-4">
-                <form method="POST" enctype="multipart/form-data">
+                <form method="POST" enctype="multipart/form-data" id="ecForm">
+
                     <div class="row mb-3">
                         <div class="col-md-6">
                             <label for="year_group" class="form-label">Year Group <span class="text-danger">*</span></label>
@@ -38,14 +40,14 @@
                             <select class="form-select" id="module_id" name="module_id" required>
                                 <option value="">-- Select module --</option>
                                 {% for mod in modules %}
-                                <option value="{{ mod.module_id }}">{{ mod.module_code }} - {{ mod.title }}</option>
+                                <option value="{{ mod.module_id }}">{{ mod.module_code }} — {{ mod.title }}</option>
                                 {% endfor %}
                             </select>
                         </div>
                         <div class="col-md-6">
                             <label for="assessment_id" class="form-label">Assessment <span class="text-danger">*</span></label>
                             <select class="form-select" id="assessment_id" name="assessment_id" required>
-                                <option value="">-- Select assessment --</option>
+                                <option value="">-- Select module first --</option>
                                 {% for assess in assessments %}
                                 <option value="{{ assess.assessment_id }}">{{ assess.name }} (Due: {{ assess.due_date }})</option>
                                 {% endfor %}
@@ -73,21 +75,50 @@
                     </div>
 
                     <div class="mb-4">
-                        <label for="evidence" class="form-label">Supporting Evidence</label>
-                        <input class="form-control" type="file" id="evidence" name="evidence"
+                        <label for="evidence" class="form-label">Supporting Evidence <small class="text-muted">(optional – multiple files allowed)</small></label>
+                        <input class="form-control" type="file" id="evidence" name="evidence" multiple
                                accept=".pdf,.png,.jpg,.jpeg,.doc,.docx">
-                        <div class="form-text">Upload medical certificates, letters, or other supporting documents. Accepted: PDF, PNG, JPEG, DOC.</div>
+                        <div class="form-text">Upload medical certificates, letters, or other supporting documents. Accepted: PDF, PNG, JPEG, DOC, DOCX.</div>
                     </div>
 
                     <div class="d-flex gap-2">
-                        <button type="submit" class="btn btn-primary" style="background-color: #003B5C; border-color: #003B5C;">
+                        <button type="submit" name="submit_ec" class="btn btn-primary"
+                                style="background-color:#003B5C;border-color:#003B5C;">
                             <i class="bi bi-send me-1"></i> Submit EC Application
                         </button>
-                        <a href="{{ url_for('student_dashboard') }}" class="btn btn-outline-secondary">Cancel</a>
+                        <button type="submit" name="save_draft" value="1" class="btn btn-outline-secondary">
+                            <i class="bi bi-floppy me-1"></i> Save as Draft
+                        </button>
+                        <a href="{{ url_for('student_dashboard') }}" class="btn btn-link text-secondary">Cancel</a>
                     </div>
                 </form>
             </div>
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.getElementById('module_id').addEventListener('change', function () {
+    const moduleId = this.value;
+    const assessSelect = document.getElementById('assessment_id');
+    assessSelect.innerHTML = '<option value="">Loading...</option>';
+    if (!moduleId) {
+        assessSelect.innerHTML = '<option value="">-- Select module first --</option>';
+        return;
+    }
+    fetch(`/api/module/${moduleId}/assessments`)
+        .then(r => r.json())
+        .then(data => {
+            assessSelect.innerHTML = '<option value="">-- Select assessment --</option>';
+            data.forEach(a => {
+                const opt = document.createElement('option');
+                opt.value = a.assessment_id;
+                opt.textContent = `${a.name} (Due: ${a.due_date || 'TBC'})`;
+                assessSelect.appendChild(opt);
+            });
+        });
+});
+</script>
 {% endblock %}
