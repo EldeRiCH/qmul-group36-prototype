@@ -1080,7 +1080,40 @@ def admin_dashboard():
     users = query_db('SELECT * FROM users ORDER BY role, name')
     return render_template('admin/dashboard.html', users=users)
 
+@app.route('/admin/edit-user/<int:user_id>', methods=['GET', 'POST'])
+@login_required
+@role_required('admin')
+def admin_edit_user(user_id):
+    user = query_db('SELECT * FROM users WHERE user_id = ?', (user_id,), one=True)
+    if not user:
+        flash('User not found.', 'danger')
+        return redirect(url_for('admin_dashboard'))
 
+    if request.method == 'POST':
+        name = request.form.get('name', '').strip()
+        email = request.form.get('email', '').strip()
+        password = request.form.get('password', '').strip()
+        role = request.form.get('role', '').strip()
+
+        if not name or not email or not role:
+            flash('Please fill in all required fields.', 'danger')
+            return render_template('admin/edit_user.html', user=user)
+
+        if password:
+            execute_db(
+                'UPDATE users SET name = ?, email = ?, password = ?, role = ? WHERE user_id = ?',
+                (name, email, password, role, user_id)
+            )
+        else:
+            execute_db(
+                'UPDATE users SET name = ?, email = ?, role = ? WHERE user_id = ?',
+                (name, email, role, user_id)
+            )
+
+        flash(f'User {name} updated successfully!', 'success')
+        return redirect(url_for('admin_dashboard'))
+
+    return render_template('admin/edit_user.html', user=user)
 @app.route('/admin/add-user', methods=['GET', 'POST'])
 @login_required
 @role_required('admin')
