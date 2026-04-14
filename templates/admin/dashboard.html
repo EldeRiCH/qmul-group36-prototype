@@ -9,6 +9,36 @@
     </a>
 </div>
 
+<!-- ── ROLE ICON CARDS ─────────────────────────────────────────────────── -->
+{% set role_cards = [
+    ('student',          'Students',     'bi-mortarboard-fill', '#198754', 'bg-success'),
+    ('sst_admin',        'SST Admin',    'bi-headset',          '#0d6efd', 'bg-primary'),
+    ('its_staff',        'ITS Staff',    'bi-pc-display',       '#0dcaf0', 'bg-info'),
+    ('lab_technician',   'Lab Tech',     'bi-cpu-fill',         '#fd7e14', 'bg-warning'),
+    ('module_organiser', 'Organisers',   'bi-journal-text',     '#6c757d', 'bg-secondary'),
+    ('admin',            'Admins',       'bi-shield-lock-fill', '#212529', 'bg-dark'),
+] %}
+
+<div class="row g-4 mb-5">
+    {% for role_val, label, icon, color, badge_cls in role_cards %}
+    {% set cnt = users | selectattr('role','equalto', role_val) | list | length %}
+    <div class="col-sm-6 col-lg-4 col-xl-2">
+        <div class="card border-0 shadow-sm h-100 role-icon-card" data-role="{{ role_val }}"
+             style="border-left: 4px solid {{ color }} !important; cursor:pointer; transition: transform 0.15s, box-shadow 0.15s;">
+            <div class="card-body text-center p-4">
+                <div class="d-flex align-items-center justify-content-center rounded-3 mx-auto mb-3 text-white"
+                     style="width:64px;height:64px;font-size:1.8rem;background:{{ color }};">
+                    <i class="bi {{ icon }}"></i>
+                </div>
+                <h6 class="fw-bold mb-1">{{ label }}</h6>
+                <div class="fw-bold fs-3" style="color:{{ color }};">{{ cnt }}</div>
+                <div class="text-muted small">user{{ 's' if cnt != 1 }}</div>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
 <!-- Role filter tabs + search bar -->
 <div class="card mb-3">
     <div class="card-body py-2 px-3 d-flex flex-wrap align-items-center gap-2 justify-content-between">
@@ -61,7 +91,7 @@
                         <th>Email</th>
                         <th style="width:170px;">Role</th>
                         <th style="width:90px;">Year</th>
-                        <th style="width:110px;"></th>
+                        <th style="width:70px;"></th>
                     </tr>
                 </thead>
                 <tbody>
@@ -91,20 +121,10 @@
                         </td>
                         <td class="text-muted small">{{ user.year_group or '—' }}</td>
                         <td>
-                            <div class="d-flex gap-1">
-                                <a href="{{ url_for('admin_edit_user', user_id=user.user_id) }}"
-                                   class="btn btn-sm btn-outline-primary" title="Edit user">
-                                    <i class="bi bi-pencil"></i>
-                                </a>
-                                {% if user.user_id != current_user_id %}
-                                <form method="POST" action="{{ url_for('admin_delete_user', user_id=user.user_id) }}"
-                                      onsubmit="return confirm('Delete {{ user.name }}? This cannot be undone.')">
-                                    <button type="submit" class="btn btn-sm btn-outline-danger" title="Delete user">
-                                        <i class="bi bi-trash"></i>
-                                    </button>
-                                </form>
-                                {% endif %}
-                            </div>
+                            <a href="{{ url_for('admin_edit_user', user_id=user.user_id) }}"
+                               class="btn btn-sm btn-outline-primary" title="Edit user">
+                                <i class="bi bi-pencil"></i>
+                            </a>
                         </td>
                     </tr>
                     {% endfor %}
@@ -122,6 +142,16 @@
 {% endblock %}
 
 {% block scripts %}
+<style>
+.role-icon-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 6px 20px rgba(0,0,0,0.12) !important;
+}
+.role-icon-card.active-card {
+    box-shadow: 0 0 0 3px #003B5C40 !important;
+    transform: translateY(-2px);
+}
+</style>
 <script>
 (function () {
     const rows        = Array.from(document.querySelectorAll('#userTable tbody tr'));
@@ -130,6 +160,7 @@
     const visibleCount= document.getElementById('visibleCount');
     const emptyState  = document.getElementById('emptyState');
     const roleBtns    = document.querySelectorAll('.role-filter-btn, .active-role-btn');
+    const iconCards   = document.querySelectorAll('.role-icon-card');
 
     let activeRole = 'all';
     let searchTerm = '';
@@ -137,6 +168,29 @@
     // Style constants
     const activeStyle  = 'background:#003B5C;color:#fff;border:none;border-radius:6px;';
     const defaultStyle = 'border-radius:6px;';
+
+    function setActiveRole(role) {
+        activeRole = role;
+
+        // Update tab button styles
+        roleBtns.forEach(function (b) {
+            b.style.cssText = defaultStyle;
+            b.classList.remove('btn-outline-secondary');
+            b.classList.add('btn-outline-secondary');
+        });
+        const activeBtn = document.querySelector(`[data-role="${role}"].active-role-btn, [data-role="${role}"].role-filter-btn`);
+        if (activeBtn) {
+            activeBtn.style.cssText = activeStyle;
+            activeBtn.classList.remove('btn-outline-secondary');
+        }
+
+        // Update icon card highlights
+        iconCards.forEach(function (card) {
+            card.classList.toggle('active-card', card.dataset.role === role);
+        });
+
+        applyFilters();
+    }
 
     function applyFilters() {
         let count = 0;
@@ -162,16 +216,16 @@
     // Role tab clicks
     roleBtns.forEach(function (btn) {
         btn.addEventListener('click', function () {
-            activeRole = this.dataset.role;
-            // Update button styles
-            roleBtns.forEach(function (b) {
-                b.style.cssText = defaultStyle;
-                b.classList.remove('btn-outline-secondary');
-                b.classList.add('btn-outline-secondary');
-            });
-            this.style.cssText = activeStyle;
-            this.classList.remove('btn-outline-secondary');
-            applyFilters();
+            setActiveRole(this.dataset.role);
+        });
+    });
+
+    // Icon card clicks
+    iconCards.forEach(function (card) {
+        card.addEventListener('click', function () {
+            const role = this.dataset.role;
+            // Toggle: if already active, go back to "all"
+            setActiveRole(activeRole === role ? 'all' : role);
         });
     });
 

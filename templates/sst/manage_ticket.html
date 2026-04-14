@@ -9,7 +9,8 @@
 </div>
 
 <div class="row">
-    <div class="col-lg-8">
+    <!-- LEFT COLUMN: Ticket details + actions -->
+    <div class="col-lg-7">
 
         <!-- Ticket Info -->
         <div class="card mb-4">
@@ -25,12 +26,9 @@
                     <div class="col-sm-9 text-muted small">{{ ticket.created_at[:10] }} at {{ ticket.created_at[11:16] }}</div>
                 </div>
                 {% if assignment %}
-                <div class="row"><div class="col-sm-3 text-muted">Assigned To</div>
+                <div class="row"><div class="col-sm-3 text-muted">Handled By</div>
                     <div class="col-sm-9">
                         <span class="badge bg-light text-dark border">{{ assignment.team_name }}</span>
-                        {% if assignment.assigned_user_name %}
-                        <span class="ms-1 text-muted small">— {{ assignment.assigned_user_name }}</span>
-                        {% endif %}
                     </div>
                 </div>
                 {% endif %}
@@ -97,22 +95,21 @@
         <!-- Reassign -->
         <div class="card mb-4">
             <div class="card-header bg-white d-flex align-items-center justify-content-between">
-                <h6 class="mb-0"><i class="bi bi-arrow-left-right me-1"></i>Reassign Ticket</h6>
+                <h6 class="mb-0"><i class="bi bi-arrow-left-right me-1"></i>Reassign to Department</h6>
                 {% if assignment %}
                 <span class="text-muted small">
                     Currently: <strong>{{ assignment.team_name }}</strong>
-                    {% if assignment.assigned_user_name %} — {{ assignment.assigned_user_name }}{% endif %}
                 </span>
                 {% endif %}
             </div>
             <div class="card-body">
-                <form method="POST" id="reassignForm">
+                <form method="POST">
                     <input type="hidden" name="action" value="reassign">
                     <div class="row g-3 mb-3">
-                        <div class="col-md-3">
-                            <label class="form-label small text-muted fw-semibold">Team</label>
-                            <select name="new_team_id" id="teamSelect" class="form-select form-select-sm">
-                                <option value="">-- Keep current --</option>
+                        <div class="col-md-6">
+                            <label class="form-label small text-muted fw-semibold">Department</label>
+                            <select name="new_team_id" class="form-select form-select-sm" required>
+                                <option value="">-- Select department --</option>
                                 {% for team in teams %}
                                 <option value="{{ team.team_id }}"
                                     {% if assignment and assignment.team_id == team.team_id %}selected{% endif %}>
@@ -121,32 +118,8 @@
                                 {% endfor %}
                             </select>
                         </div>
-                        <div class="col-md-3">
-                            <label class="form-label small text-muted fw-semibold">Staff Member</label>
-                            <select name="assigned_user_id" id="staffSelect" class="form-select form-select-sm">
-                                <option value="">-- Unassigned --</option>
-                                {% for s in staff_members %}
-                                <option value="{{ s.user_id }}"
-                                    {% if assignment and assignment.assigned_user_id == s.user_id %}selected{% endif %}>
-                                    {{ s.name }} ({{ s.role | replace('_',' ') | title }})
-                                </option>
-                                {% endfor %}
-                            </select>
-                        </div>
-                        <div class="col-md-3">
-                            <label class="form-label small text-muted fw-semibold">Category</label>
-                            <select name="new_category_id" class="form-select form-select-sm">
-                                <option value="">-- Keep current --</option>
-                                {% for cat in categories %}
-                                <option value="{{ cat.category_id }}"
-                                    {% if ticket.category_id == cat.category_id %}selected{% endif %}>
-                                    {{ cat.name }}
-                                </option>
-                                {% endfor %}
-                            </select>
-                        </div>
-                        <div class="col-md-3">
-                            <label class="form-label small text-muted fw-semibold">Reassign Note</label>
+                        <div class="col-md-6">
+                            <label class="form-label small text-muted fw-semibold">Reason</label>
                             <input type="text" name="reassign_note" class="form-control form-control-sm"
                                    placeholder="Reason for reassignment...">
                         </div>
@@ -157,6 +130,10 @@
                 </form>
             </div>
         </div>
+    </div>
+
+    <!-- RIGHT COLUMN: Comments + Status Timeline -->
+    <div class="col-lg-5">
 
         <!-- Add Comment -->
         <div class="card mb-4">
@@ -200,10 +177,8 @@
                 {% endfor %}
             </div>
         </div>
-    </div>
 
-    <!-- Status Timeline -->
-    <div class="col-lg-4">
+        <!-- Status Timeline -->
         <div class="card">
             <div class="card-header bg-white"><h6 class="mb-0">Status History</h6></div>
             <div class="card-body">
@@ -219,46 +194,4 @@
         </div>
     </div>
 </div>
-{% endblock %}
-
-{% block scripts %}
-<script>
-(function () {
-    const teamSel  = document.getElementById('teamSelect');
-    const staffSel = document.getElementById('staffSelect');
-
-    // Store the currently-assigned user id so we can re-select after AJAX reload
-    const currentAssigned = "{{ assignment.assigned_user_id if assignment and assignment.assigned_user_id else '' }}";
-
-    function loadStaff(teamId) {
-        // Clear and show a loading placeholder
-        staffSel.innerHTML = '<option value="">Loading…</option>';
-        if (!teamId) {
-            staffSel.innerHTML = '<option value="">-- Unassigned --</option>';
-            return;
-        }
-        fetch(`/api/team/${teamId}/staff`)
-            .then(r => r.json())
-            .then(data => {
-                staffSel.innerHTML = '<option value="">-- Unassigned --</option>';
-                data.forEach(function (member) {
-                    const opt = document.createElement('option');
-                    opt.value = member.user_id;
-                    opt.textContent = member.name + ' (' + member.role.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()) + ')';
-                    if (String(member.user_id) === String(currentAssigned)) {
-                        opt.selected = true;
-                    }
-                    staffSel.appendChild(opt);
-                });
-            })
-            .catch(() => {
-                staffSel.innerHTML = '<option value="">-- Could not load staff --</option>';
-            });
-    }
-
-    teamSel.addEventListener('change', function () {
-        loadStaff(this.value);
-    });
-})();
-</script>
 {% endblock %}

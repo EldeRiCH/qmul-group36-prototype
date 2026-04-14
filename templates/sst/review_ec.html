@@ -9,7 +9,8 @@
 </div>
 
 <div class="row">
-    <div class="col-lg-8">
+    <!-- LEFT: Application details + attachments + decision -->
+    <div class="col-lg-7">
 
         <!-- Application Details -->
         <div class="card mb-4">
@@ -127,6 +128,10 @@
                 </form>
             </div>
         </div>
+    </div>
+
+    <!-- RIGHT: Comments + Status History -->
+    <div class="col-lg-5">
 
         <!-- Add Comment -->
         <div class="card mb-4">
@@ -150,8 +155,8 @@
             </div>
         </div>
 
-        <!-- Comments -->
-        <div class="card">
+        <!-- Comments List -->
+        <div class="card mb-4">
             <div class="card-header bg-white"><h6 class="mb-0">Comments ({{ comments|length }})</h6></div>
             <div class="card-body">
                 {% for comment in comments %}
@@ -169,10 +174,8 @@
                 {% endfor %}
             </div>
         </div>
-    </div>
 
-    <!-- Status History -->
-    <div class="col-lg-4">
+        <!-- Status History -->
         <div class="card">
             <div class="card-header bg-white"><h6 class="mb-0">Status History</h6></div>
             <div class="card-body">

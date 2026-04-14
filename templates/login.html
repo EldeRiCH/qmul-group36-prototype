@@ -2,194 +2,200 @@
 {% block title %}Sign In - QMUL Student Portal{% endblock %}
 
 {% block content %}
-<div class="row justify-content-center align-items-start g-4 mt-2">
+<div class="d-flex flex-column align-items-center mt-4">
 
-    <!-- Left: Login card -->
-    <div class="col-lg-5 col-md-7">
-
-        <!-- Hero header -->
-        <div class="text-center mb-4">
-            <div class="d-inline-flex align-items-center justify-content-center rounded-3 mb-3"
-                 style="width:72px;height:72px;background:linear-gradient(135deg,#003B5C,#004d7a);">
-                <svg width="40" height="40" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M8 36 L8 20 L16 28 L24 12 L32 28 L40 20 L40 36 Z" fill="#c8a951"/>
-                    <rect x="8" y="34" width="32" height="4" rx="1" fill="#c8a951"/>
-                </svg>
-            </div>
-            <h3 class="fw-bold mb-0" style="color:#003B5C;">Student Portal</h3>
-            <p class="text-muted small mt-1">Queen Mary University of London</p>
+    <!-- Hero header -->
+    <div class="text-center mb-4">
+        <div class="d-inline-flex align-items-center justify-content-center rounded-3 mb-3"
+             style="width:80px;height:80px;background:linear-gradient(135deg,#003B5C,#004d7a);box-shadow:0 4px 16px rgba(0,59,92,0.3);">
+            <svg width="44" height="44" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M8 36 L8 20 L16 28 L24 12 L32 28 L40 20 L40 36 Z" fill="#c8a951"/>
+                <rect x="8" y="34" width="32" height="4" rx="1" fill="#c8a951"/>
+            </svg>
         </div>
-
-        <!-- Login form card -->
-        <div class="card shadow-sm" style="border-radius:14px; overflow:hidden;">
-            <div class="p-2" style="background:linear-gradient(135deg,#003B5C,#004d7a); height:4px;"></div>
-            <div class="card-body p-4">
-                <h6 class="fw-semibold mb-4 text-center text-muted">Sign in with your QMUL credentials</h6>
-
-                <form method="POST" action="{{ url_for('login') }}">
-                    <div class="mb-3">
-                        <label for="email" class="form-label fw-semibold small">QMUL Email</label>
-                        <div class="input-group">
-                            <span class="input-group-text bg-light border-end-0">
-                                <i class="bi bi-envelope text-muted"></i>
-                            </span>
-                            <input type="email" class="form-control border-start-0 ps-0" id="email" name="email"
-                                   placeholder="username@qmul.ac.uk" required style="border-radius:0 6px 6px 0;">
-                        </div>
-                    </div>
-                    <div class="mb-4">
-                        <label for="password" class="form-label fw-semibold small">Password</label>
-                        <div class="input-group">
-                            <span class="input-group-text bg-light border-end-0">
-                                <i class="bi bi-lock text-muted"></i>
-                            </span>
-                            <input type="password" class="form-control border-start-0 ps-0" id="password" name="password"
-                                   placeholder="Enter your password" required style="border-radius:0 6px 6px 0;">
-                        </div>
-                    </div>
-                    <button type="submit" class="btn w-100 py-2 fw-semibold text-white"
-                            style="background:linear-gradient(135deg,#003B5C,#004d7a); border:none; border-radius:8px; letter-spacing:0.02em;">
-                        <i class="bi bi-box-arrow-in-right me-2"></i>Sign In
-                    </button>
-                </form>
-            </div>
-        </div>
-
-        <p class="text-center text-muted mt-3" style="font-size:0.78rem;">
-            <i class="bi bi-shield-lock me-1"></i>
-            Secured by QMUL IT Services &middot; For help contact the <strong>Student Support Team</strong>
-        </p>
+        <h3 class="fw-bold mb-1" style="color:#003B5C;">Student Portal</h3>
+        <p class="text-muted mb-0">Queen Mary University of London</p>
     </div>
 
-    <!-- Right: Demo credentials -->
-    <div class="col-lg-5 col-md-8">
-        <div class="card shadow-sm" style="border-radius:14px;">
-            <div class="card-header py-2 px-3" style="border-bottom:1px solid #f0f0f0;">
-                <span class="fw-semibold small text-muted">
-                    <i class="bi bi-person-badge me-1"></i>Demo Accounts
-                    <span class="fw-normal ms-1">— password: <code>password</code></span>
-                </span>
-            </div>
-            <div class="card-body p-3">
+    <!-- Login form card -->
+    <div class="card shadow" style="border-radius:16px; overflow:hidden; width:100%; max-width:420px;">
+        <div class="p-2" style="background:linear-gradient(135deg,#003B5C,#004d7a); height:5px;"></div>
+        <div class="card-body p-4 p-md-5">
+            <h6 class="fw-semibold mb-4 text-center text-muted">Sign in with your QMUL credentials</h6>
 
-                <!-- Students -->
+            <form method="POST" action="{{ url_for('login') }}">
                 <div class="mb-3">
-                    <div class="text-uppercase fw-bold mb-2"
-                         style="font-size:0.68rem; letter-spacing:0.1em; color:#003B5C;">
-                        <i class="bi bi-mortarboard me-1"></i>Students
-                    </div>
-                    <div class="d-flex flex-column gap-1">
-                        <div class="demo-row p-2 rounded d-flex align-items-center gap-2"
-                             style="background:#f8f9fa; cursor:pointer;"
-                             data-email="year1@qmul.ac.uk">
-                            <span class="badge" style="background:#003B5C; font-size:0.65rem;">Yr 1</span>
-                            <code class="small text-primary">year1@qmul.ac.uk</code>
-                            <span class="text-muted small ms-auto">Emma Clarke &mdash; ECS101–103</span>
-                        </div>
-                        <div class="demo-row p-2 rounded d-flex align-items-center gap-2"
-                             style="background:#f8f9fa; cursor:pointer;"
-                             data-email="year2@qmul.ac.uk">
-                            <span class="badge" style="background:#003B5C; font-size:0.65rem;">Yr 2</span>
-                            <code class="small text-primary">year2@qmul.ac.uk</code>
-                            <span class="text-muted small ms-auto">James Patel &mdash; ECS201–203</span>
-                        </div>
-                        <div class="demo-row p-2 rounded d-flex align-items-center gap-2"
-                             style="background:#f8f9fa; cursor:pointer;"
-                             data-email="year3@qmul.ac.uk">
-                            <span class="badge" style="background:#003B5C; font-size:0.65rem;">Yr 3</span>
-                            <code class="small text-primary">year3@qmul.ac.uk</code>
-                            <span class="text-muted small ms-auto">Sophie Adams &mdash; ECS301–303</span>
-                        </div>
+                    <label for="email" class="form-label fw-semibold small">QMUL Email</label>
+                    <div class="input-group">
+                        <span class="input-group-text bg-light border-end-0">
+                            <i class="bi bi-envelope text-muted"></i>
+                        </span>
+                        <input type="email" class="form-control border-start-0 ps-0" id="email" name="email"
+                               placeholder="username@qmul.ac.uk" required style="border-radius:0 6px 6px 0;">
                     </div>
                 </div>
-
-                <!-- Staff -->
-                <div>
-                    <div class="text-uppercase fw-bold mb-2"
-                         style="font-size:0.68rem; letter-spacing:0.1em; color:#003B5C;">
-                        <i class="bi bi-person-gear me-1"></i>Staff
-                    </div>
-                    <div class="d-flex flex-column gap-1">
-                        <div class="demo-row p-2 rounded d-flex align-items-center gap-2"
-                             style="background:#f8f9fa; cursor:pointer;"
-                             data-email="sst@qmul.ac.uk">
-                            <span class="badge bg-primary" style="font-size:0.65rem;">SST</span>
-                            <code class="small text-primary">sst@qmul.ac.uk</code>
-                            <span class="text-muted small ms-auto">Sarah Williams</span>
-                        </div>
-                        <div class="demo-row p-2 rounded d-flex align-items-center gap-2"
-                             style="background:#f8f9fa; cursor:pointer;"
-                             data-email="sst2@qmul.ac.uk">
-                            <span class="badge bg-primary" style="font-size:0.65rem;">SST</span>
-                            <code class="small text-primary">sst2@qmul.ac.uk</code>
-                            <span class="text-muted small ms-auto">Mark Thompson</span>
-                        </div>
-                        <div class="demo-row p-2 rounded d-flex align-items-center gap-2"
-                             style="background:#f8f9fa; cursor:pointer;"
-                             data-email="its@qmul.ac.uk">
-                            <span class="badge bg-info text-dark" style="font-size:0.65rem;">ITS</span>
-                            <code class="small text-primary">its@qmul.ac.uk</code>
-                            <span class="text-muted small ms-auto">James Chen</span>
-                        </div>
-                        <div class="demo-row p-2 rounded d-flex align-items-center gap-2"
-                             style="background:#f8f9fa; cursor:pointer;"
-                             data-email="its2@qmul.ac.uk">
-                            <span class="badge bg-info text-dark" style="font-size:0.65rem;">ITS</span>
-                            <code class="small text-primary">its2@qmul.ac.uk</code>
-                            <span class="text-muted small ms-auto">Olivia Harris</span>
-                        </div>
-                        <div class="demo-row p-2 rounded d-flex align-items-center gap-2"
-                             style="background:#f8f9fa; cursor:pointer;"
-                             data-email="lab@qmul.ac.uk">
-                            <span class="badge bg-warning text-dark" style="font-size:0.65rem;">Lab</span>
-                            <code class="small text-primary">lab@qmul.ac.uk</code>
-                            <span class="text-muted small ms-auto">Maria Garcia</span>
-                        </div>
-                        <div class="demo-row p-2 rounded d-flex align-items-center gap-2"
-                             style="background:#f8f9fa; cursor:pointer;"
-                             data-email="lab2@qmul.ac.uk">
-                            <span class="badge bg-warning text-dark" style="font-size:0.65rem;">Lab</span>
-                            <code class="small text-primary">lab2@qmul.ac.uk</code>
-                            <span class="text-muted small ms-auto">Tom Wright</span>
-                        </div>
-                        <div class="demo-row p-2 rounded d-flex align-items-center gap-2"
-                             style="background:#f8f9fa; cursor:pointer;"
-                             data-email="organiser@qmul.ac.uk">
-                            <span class="badge bg-success" style="font-size:0.65rem;">Org</span>
-                            <code class="small text-primary">organiser@qmul.ac.uk</code>
-                            <span class="text-muted small ms-auto">Dr. David Brown</span>
-                        </div>
-                        <div class="demo-row p-2 rounded d-flex align-items-center gap-2"
-                             style="background:#f8f9fa; cursor:pointer;"
-                             data-email="organiser2@qmul.ac.uk">
-                            <span class="badge bg-success" style="font-size:0.65rem;">Org</span>
-                            <code class="small text-primary">organiser2@qmul.ac.uk</code>
-                            <span class="text-muted small ms-auto">Dr. Aisha Khan</span>
-                        </div>
+                <div class="mb-4">
+                    <label for="password" class="form-label fw-semibold small">Password</label>
+                    <div class="input-group">
+                        <span class="input-group-text bg-light border-end-0">
+                            <i class="bi bi-lock text-muted"></i>
+                        </span>
+                        <input type="password" class="form-control border-start-0 ps-0" id="password" name="password"
+                               placeholder="Enter your password" required style="border-radius:0 6px 6px 0;">
                     </div>
                 </div>
+                <button type="submit" class="btn w-100 py-2 fw-semibold text-white"
+                        style="background:linear-gradient(135deg,#003B5C,#004d7a); border:none; border-radius:8px; letter-spacing:0.02em; font-size:1rem;">
+                    <i class="bi bi-box-arrow-in-right me-2"></i>Sign In
+                </button>
+            </form>
+        </div>
+    </div>
 
-                <!-- Admin -->
-                <div class="mt-3 pt-2" style="border-top:1px solid #f0f0f0;">
-                    <div class="text-uppercase fw-bold mb-2"
-                         style="font-size:0.68rem; letter-spacing:0.1em; color:#003B5C;">
-                        <i class="bi bi-shield-lock me-1"></i>System Admin
+    <p class="text-center text-muted mt-3 mb-2" style="font-size:0.78rem;">
+        <i class="bi bi-shield-lock me-1"></i>
+        Secured by QMUL IT Services &middot; For help contact the <strong>Student Support Team</strong>
+    </p>
+
+    <!-- Demo accounts toggle -->
+    <div class="mb-4">
+        <button class="btn btn-link btn-sm text-muted text-decoration-none"
+                type="button" data-bs-toggle="collapse" data-bs-target="#demoAccounts"
+                aria-expanded="false" aria-controls="demoAccounts"
+                style="font-size:0.78rem;">
+            <i class="bi bi-chevron-down me-1" id="demoChevron"></i>Demo Accounts
+        </button>
+    </div>
+
+    <!-- Demo credentials (collapsible) -->
+    <div class="collapse" id="demoAccounts">
+    <div class="card shadow-sm mb-4" style="border-radius:14px; width:100%; max-width:560px;">
+        <div class="card-header py-2 px-3" style="border-bottom:1px solid #f0f0f0;">
+            <span class="fw-semibold small text-muted">
+                <i class="bi bi-person-badge me-1"></i>Demo Accounts
+                <span class="fw-normal ms-1">— password: <code>password</code></span>
+            </span>
+        </div>
+        <div class="card-body p-3">
+
+            <!-- Students -->
+            <div class="mb-3">
+                <div class="text-uppercase fw-bold mb-2"
+                     style="font-size:0.68rem; letter-spacing:0.1em; color:#003B5C;">
+                    <i class="bi bi-mortarboard me-1"></i>Students
+                </div>
+                <div class="d-flex flex-column gap-1">
+                    <div class="demo-row p-2 rounded d-flex align-items-center gap-2"
+                         style="background:#f8f9fa; cursor:pointer;"
+                         data-email="year1@qmul.ac.uk">
+                        <span class="badge" style="background:#003B5C; font-size:0.65rem;">Yr 1</span>
+                        <code class="small text-primary">year1@qmul.ac.uk</code>
+                        <span class="text-muted small ms-auto">Emma Clarke &mdash; ECS101–103</span>
                     </div>
                     <div class="demo-row p-2 rounded d-flex align-items-center gap-2"
                          style="background:#f8f9fa; cursor:pointer;"
-                         data-email="admin@qmul.ac.uk">
-                        <span class="badge bg-dark" style="font-size:0.65rem;">Admin</span>
-                        <code class="small text-primary">admin@qmul.ac.uk</code>
-                        <span class="text-muted small ms-auto">System Admin</span>
+                         data-email="year2@qmul.ac.uk">
+                        <span class="badge" style="background:#003B5C; font-size:0.65rem;">Yr 2</span>
+                        <code class="small text-primary">year2@qmul.ac.uk</code>
+                        <span class="text-muted small ms-auto">James Patel &mdash; ECS201–203</span>
+                    </div>
+                    <div class="demo-row p-2 rounded d-flex align-items-center gap-2"
+                         style="background:#f8f9fa; cursor:pointer;"
+                         data-email="year3@qmul.ac.uk">
+                        <span class="badge" style="background:#003B5C; font-size:0.65rem;">Yr 3</span>
+                        <code class="small text-primary">year3@qmul.ac.uk</code>
+                        <span class="text-muted small ms-auto">Sophie Adams &mdash; ECS301–303</span>
                     </div>
                 </div>
-
-                <p class="text-muted mb-0 mt-2" style="font-size:0.72rem;">
-                    <i class="bi bi-cursor me-1"></i>Click any row to auto-fill credentials.
-                </p>
             </div>
+
+            <!-- Staff -->
+            <div>
+                <div class="text-uppercase fw-bold mb-2"
+                     style="font-size:0.68rem; letter-spacing:0.1em; color:#003B5C;">
+                    <i class="bi bi-person-gear me-1"></i>Staff
+                </div>
+                <div class="d-flex flex-column gap-1">
+                    <div class="demo-row p-2 rounded d-flex align-items-center gap-2"
+                         style="background:#f8f9fa; cursor:pointer;"
+                         data-email="sst@qmul.ac.uk">
+                        <span class="badge bg-primary" style="font-size:0.65rem;">SST</span>
+                        <code class="small text-primary">sst@qmul.ac.uk</code>
+                        <span class="text-muted small ms-auto">Sarah Williams</span>
+                    </div>
+                    <div class="demo-row p-2 rounded d-flex align-items-center gap-2"
+                         style="background:#f8f9fa; cursor:pointer;"
+                         data-email="sst2@qmul.ac.uk">
+                        <span class="badge bg-primary" style="font-size:0.65rem;">SST</span>
+                        <code class="small text-primary">sst2@qmul.ac.uk</code>
+                        <span class="text-muted small ms-auto">Mark Thompson</span>
+                    </div>
+                    <div class="demo-row p-2 rounded d-flex align-items-center gap-2"
+                         style="background:#f8f9fa; cursor:pointer;"
+                         data-email="its@qmul.ac.uk">
+                        <span class="badge bg-info text-dark" style="font-size:0.65rem;">ITS</span>
+                        <code class="small text-primary">its@qmul.ac.uk</code>
+                        <span class="text-muted small ms-auto">James Chen</span>
+                    </div>
+                    <div class="demo-row p-2 rounded d-flex align-items-center gap-2"
+                         style="background:#f8f9fa; cursor:pointer;"
+                         data-email="its2@qmul.ac.uk">
+                        <span class="badge bg-info text-dark" style="font-size:0.65rem;">ITS</span>
+                        <code class="small text-primary">its2@qmul.ac.uk</code>
+                        <span class="text-muted small ms-auto">Olivia Harris</span>
+                    </div>
+                    <div class="demo-row p-2 rounded d-flex align-items-center gap-2"
+                         style="background:#f8f9fa; cursor:pointer;"
+                         data-email="lab@qmul.ac.uk">
+                        <span class="badge bg-warning text-dark" style="font-size:0.65rem;">Lab</span>
+                        <code class="small text-primary">lab@qmul.ac.uk</code>
+                        <span class="text-muted small ms-auto">Maria Garcia</span>
+                    </div>
+                    <div class="demo-row p-2 rounded d-flex align-items-center gap-2"
+                         style="background:#f8f9fa; cursor:pointer;"
+                         data-email="lab2@qmul.ac.uk">
+                        <span class="badge bg-warning text-dark" style="font-size:0.65rem;">Lab</span>
+                        <code class="small text-primary">lab2@qmul.ac.uk</code>
+                        <span class="text-muted small ms-auto">Tom Wright</span>
+                    </div>
+                    <div class="demo-row p-2 rounded d-flex align-items-center gap-2"
+                         style="background:#f8f9fa; cursor:pointer;"
+                         data-email="organiser@qmul.ac.uk">
+                        <span class="badge bg-success" style="font-size:0.65rem;">Org</span>
+                        <code class="small text-primary">organiser@qmul.ac.uk</code>
+                        <span class="text-muted small ms-auto">Dr. David Brown</span>
+                    </div>
+                    <div class="demo-row p-2 rounded d-flex align-items-center gap-2"
+                         style="background:#f8f9fa; cursor:pointer;"
+                         data-email="organiser2@qmul.ac.uk">
+                        <span class="badge bg-success" style="font-size:0.65rem;">Org</span>
+                        <code class="small text-primary">organiser2@qmul.ac.uk</code>
+                        <span class="text-muted small ms-auto">Dr. Aisha Khan</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Admin -->
+            <div class="mt-3 pt-2" style="border-top:1px solid #f0f0f0;">
+                <div class="text-uppercase fw-bold mb-2"
+                     style="font-size:0.68rem; letter-spacing:0.1em; color:#003B5C;">
+                    <i class="bi bi-shield-lock me-1"></i>System Admin
+                </div>
+                <div class="demo-row p-2 rounded d-flex align-items-center gap-2"
+                     style="background:#f8f9fa; cursor:pointer;"
+                     data-email="admin@qmul.ac.uk">
+                    <span class="badge bg-dark" style="font-size:0.65rem;">Admin</span>
+                    <code class="small text-primary">admin@qmul.ac.uk</code>
+                    <span class="text-muted small ms-auto">System Admin</span>
+                </div>
+            </div>
+
+            <p class="text-muted mb-0 mt-2" style="font-size:0.72rem;">
+                <i class="bi bi-cursor me-1"></i>Click any row to auto-fill credentials.
+            </p>
         </div>
     </div>
+    </div><!-- end collapse -->
 </div>
 {% endblock %}
 
@@ -198,6 +204,7 @@
 .demo-row { transition: background 0.1s, box-shadow 0.1s; }
 .demo-row:hover { background: #e8f0f7 !important; box-shadow: 0 0 0 2px #003B5C30; }
 .demo-row.selected { background: #cfe2ff !important; box-shadow: 0 0 0 2px #003B5C; }
+#demoChevron { transition: transform 0.2s; }
 </style>
 <script>
 document.querySelectorAll('.demo-row').forEach(row => {
@@ -208,5 +215,13 @@ document.querySelectorAll('.demo-row').forEach(row => {
         document.getElementById('password').value = 'password';
     });
 });
+
+// Rotate chevron when demo panel opens/closes
+const demoCollapse = document.getElementById('demoAccounts');
+const demoChevron  = document.getElementById('demoChevron');
+if (demoCollapse && demoChevron) {
+    demoCollapse.addEventListener('show.bs.collapse',  () => demoChevron.style.transform = 'rotate(180deg)');
+    demoCollapse.addEventListener('hide.bs.collapse',  () => demoChevron.style.transform = 'rotate(0deg)');
+}
 </script>
 {% endblock %}

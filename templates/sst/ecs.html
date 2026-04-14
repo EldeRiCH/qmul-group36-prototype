@@ -1,0 +1,117 @@
+{% extends "base.html" %}
+{% block title %}SST — EC Applications{% endblock %}
+
+{% block content %}
+<div class="d-flex align-items-center mb-4">
+    <a href="{{ url_for('sst_dashboard') }}" class="btn btn-sm btn-outline-secondary me-3">
+        <i class="bi bi-arrow-left"></i> Dashboard
+    </a>
+    <h4 class="mb-0"><i class="bi bi-file-earmark-medical me-2"></i>EC Applications</h4>
+</div>
+
+<!-- Stat strip -->
+{% set submitted_count  = ecs | selectattr('status', 'equalto', 'Submitted')       | list | length %}
+{% set review_count     = ecs | selectattr('status', 'equalto', 'Under Review')    | list | length %}
+{% set action_count     = ecs | selectattr('status', 'equalto', 'Action Required') | list | length %}
+{% set approved_count   = ecs | selectattr('status', 'equalto', 'Approved')        | list | length %}
+
+<div class="row g-3 mb-4">
+    <div class="col-sm-6 col-lg-3">
+        <div class="card border-0 shadow-sm" style="border-left:4px solid #003B5C !important;">
+            <div class="card-body d-flex align-items-center gap-3 py-3">
+                <div class="rounded-3 text-white d-flex align-items-center justify-content-center flex-shrink-0"
+                     style="width:48px;height:48px;font-size:1.3rem;background:#003B5C;"><i class="bi bi-file-earmark-text"></i></div>
+                <div><div class="fw-bold fs-4 lh-1" style="color:#003B5C;">{{ ecs|length }}</div><div class="text-muted small">Total</div></div>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-lg-3">
+        <div class="card border-0 shadow-sm" style="border-left:4px solid #fd7e14 !important;">
+            <div class="card-body d-flex align-items-center gap-3 py-3">
+                <div class="rounded-3 text-white d-flex align-items-center justify-content-center flex-shrink-0"
+                     style="width:48px;height:48px;font-size:1.3rem;background:#fd7e14;"><i class="bi bi-hourglass-split"></i></div>
+                <div><div class="fw-bold fs-4 lh-1" style="color:#fd7e14;">{{ review_count }}</div><div class="text-muted small">Under Review</div></div>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-lg-3">
+        <div class="card border-0 shadow-sm" style="border-left:4px solid #e65c00 !important;">
+            <div class="card-body d-flex align-items-center gap-3 py-3">
+                <div class="rounded-3 text-white d-flex align-items-center justify-content-center flex-shrink-0"
+                     style="width:48px;height:48px;font-size:1.3rem;background:#e65c00;"><i class="bi bi-exclamation-triangle"></i></div>
+                <div><div class="fw-bold fs-4 lh-1" style="color:#e65c00;">{{ action_count }}</div><div class="text-muted small">Action Required</div></div>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-lg-3">
+        <div class="card border-0 shadow-sm" style="border-left:4px solid #198754 !important;">
+            <div class="card-body d-flex align-items-center gap-3 py-3">
+                <div class="rounded-3 text-white d-flex align-items-center justify-content-center flex-shrink-0"
+                     style="width:48px;height:48px;font-size:1.3rem;background:#198754;"><i class="bi bi-check-circle"></i></div>
+                <div><div class="fw-bold fs-4 lh-1 text-success">{{ approved_count }}</div><div class="text-muted small">Approved</div></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- EC table -->
+<div class="card">
+    <div class="card-header bg-white">
+        <div class="d-flex justify-content-between align-items-start flex-wrap gap-2">
+            <h6 class="mb-0">EC Applications ({{ ecs|length }})</h6>
+            <div class="d-flex gap-2 flex-wrap">
+                <form class="d-flex gap-2" method="GET">
+                    <input type="hidden" name="ec_status" value="{{ ec_status_filter }}">
+                    <input type="text" name="ec_search" class="form-control form-control-sm"
+                           placeholder="Search student, module, ID..." value="{{ ec_search_query or '' }}" style="width:220px;">
+                    <button type="submit" class="btn btn-sm btn-primary">Search</button>
+                    {% if ec_search_query %}
+                    <a href="{{ url_for('sst_ecs') }}" class="btn btn-sm btn-outline-secondary">Clear</a>
+                    {% endif %}
+                </form>
+                <form class="d-flex gap-2" method="GET">
+                    <input type="hidden" name="ec_search" value="{{ ec_search_query or '' }}">
+                    <select name="ec_status" class="form-select form-select-sm" style="width:auto;" onchange="this.form.submit()">
+                        <option value="">All Statuses</option>
+                        <option value="Submitted"       {% if ec_status_filter == 'Submitted' %}selected{% endif %}>Submitted</option>
+                        <option value="Under Review"    {% if ec_status_filter == 'Under Review' %}selected{% endif %}>Under Review</option>
+                        <option value="Action Required" {% if ec_status_filter == 'Action Required' %}selected{% endif %}>Action Required</option>
+                        <option value="Approved"        {% if ec_status_filter == 'Approved' %}selected{% endif %}>Approved</option>
+                        <option value="Rejected"        {% if ec_status_filter == 'Rejected' %}selected{% endif %}>Rejected</option>
+                        <option value="Withdrawn"       {% if ec_status_filter == 'Withdrawn' %}selected{% endif %}>Withdrawn</option>
+                    </select>
+                </form>
+            </div>
+        </div>
+    </div>
+    <div class="card-body p-0">
+        {% if ecs %}
+        <div class="table-responsive">
+            <table class="table table-hover mb-0" id="ecTable" data-paginate="20">
+                <thead>
+                    <tr><th>ID</th><th>Student</th><th>Module</th><th>Reason</th><th>Status</th><th>Submitted</th><th></th></tr>
+                </thead>
+                <tbody>
+                    {% for ec in ecs %}
+                    <tr>
+                        <td><span class="fw-semibold small" style="color:#003B5C;">{{ ec.ec_id | ec_ref }}</span></td>
+                        <td>{{ ec.student_name }}</td>
+                        <td>{{ ec.module_code }}</td>
+                        <td class="text-muted small">{{ ec.reason }}</td>
+                        <td>{% include 'partials/ec_badge.html' %}</td>
+                        <td class="text-muted small" title="{{ ec.created_at }}">{{ ec.created_at | timeago }}</td>
+                        <td><a href="{{ url_for('sst_review_ec', ec_id=ec.ec_id) }}" class="btn btn-sm btn-outline-primary">Review</a></td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        <div id="ecTablePager" class="d-flex justify-content-between align-items-center px-3 py-2 border-top" style="display:none!important;font-size:0.82rem;"></div>
+        {% else %}
+        <div class="text-center py-5 text-muted">
+            <i class="bi bi-file-earmark fs-2 d-block mb-2"></i>No EC applications found.
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

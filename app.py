@@ -655,7 +655,7 @@ def student_withdraw_ec(ec_id):
     return redirect(url_for('student_dashboard'))
 
 
-@app.route('/student/ticket/<int:ticket_id>')
+@app.route('/student/ticket/<int:ticket_id>', methods=['GET', 'POST'])
 @login_required
 @role_required('student')
 def student_view_ticket(ticket_id):
@@ -668,6 +668,27 @@ def student_view_ticket(ticket_id):
     if not ticket:
         flash('Ticket not found.', 'danger')
         return redirect(url_for('student_dashboard'))
+
+    if request.method == 'POST':
+        action = request.form.get('action')
+        if action == 'add_file' and ticket['status'] not in ('Resolved', 'Closed', 'Withdrawn'):
+            files = request.files.getlist('files')
+            saved = 0
+            for file in files:
+                if file and file.filename and allowed_file(file.filename):
+                    filename = secure_filename(f"ticket_{ticket_id}_{file.filename}")
+                    file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
+                    execute_db(
+                        'INSERT INTO attachments (case_id, case_type, file_name, file_path, uploaded_at) '
+                        'VALUES (?, ?, ?, ?, ?)',
+                        (ticket_id, 'ticket', file.filename, filename, datetime.now().isoformat())
+                    )
+                    saved += 1
+            if saved:
+                flash(f'{saved} file(s) uploaded successfully.', 'success')
+            else:
+                flash('No valid files were uploaded.', 'warning')
+        return redirect(url_for('student_view_ticket', ticket_id=ticket_id))
 
     comments = query_db(
         'SELECT cm.*, u.name as author_name FROM comments cm '
@@ -687,7 +708,7 @@ def student_view_ticket(ticket_id):
                            attachments=attachments, history=history)
 
 
-@app.route('/student/ec/<int:ec_id>')
+@app.route('/student/ec/<int:ec_id>', methods=['GET', 'POST'])
 @login_required
 @role_required('student')
 def student_view_ec(ec_id):
@@ -703,6 +724,27 @@ def student_view_ec(ec_id):
     if not ec:
         flash('EC application not found.', 'danger')
         return redirect(url_for('student_dashboard'))
+
+    if request.method == 'POST':
+        action = request.form.get('action')
+        if action == 'add_file' and ec['status'] == 'Action Required':
+            files = request.files.getlist('files')
+            saved = 0
+            for file in files:
+                if file and file.filename and allowed_file(file.filename):
+                    filename = secure_filename(f"ec_{ec_id}_{file.filename}")
+                    file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
+                    execute_db(
+                        'INSERT INTO attachments (case_id, case_type, file_name, file_path, uploaded_at) '
+                        'VALUES (?, ?, ?, ?, ?)',
+                        (ec_id, 'ec', file.filename, filename, datetime.now().isoformat())
+                    )
+                    saved += 1
+            if saved:
+                flash(f'{saved} file(s) uploaded successfully.', 'success')
+            else:
+                flash('No valid files were uploaded.', 'warning')
+        return redirect(url_for('student_view_ec', ec_id=ec_id))
 
     comments = query_db(
         'SELECT cm.*, u.name as author_name FROM comments cm '
@@ -840,13 +882,12 @@ def sst_manage_ticket(ticket_id):
                 flash('Comment added.', 'success')
 
         elif action == 'reassign':
-            new_team_id      = request.form.get('new_team_id')
-            new_category_id  = request.form.get('new_category_id')
-            new_assigned_uid = request.form.get('assigned_user_id') or None
-            reassign_note    = request.form.get('reassign_note', '').strip()
+            new_team_id   = request.form.get('new_team_id')
+            reassign_note = request.form.get('reassign_note', '').strip()
 
-            changes = []
-            if new_team_id:
+            if not new_team_id:
+                flash('Please select a department to reassign to.', 'warning')
+            else:
                 team = query_db('SELECT name FROM teams WHERE team_id = ?', (new_team_id,), one=True)
                 existing = query_db(
                     "SELECT assignment_id FROM assignments WHERE case_id = ? AND case_type = 'ticket'",
@@ -854,28 +895,18 @@ def sst_manage_ticket(ticket_id):
                 )
                 if existing:
                     execute_db(
-                        'UPDATE assignments SET team_id = ?, assigned_user_id = ?, assigned_at = ? '
+                        'UPDATE assignments SET team_id = ?, assigned_user_id = NULL, assigned_at = ? '
                         'WHERE case_id = ? AND case_type = ?',
-                        (new_team_id, new_assigned_uid,
-                         datetime.now().isoformat(), ticket_id, 'ticket')
+                        (new_team_id, datetime.now().isoformat(), ticket_id, 'ticket')
                     )
                 else:
                     execute_db(
                         'INSERT INTO assignments (case_id, case_type, team_id, assigned_user_id, assigned_at) '
-                        'VALUES (?, ?, ?, ?, ?)',
-                        (ticket_id, 'ticket', new_team_id,
-                         new_assigned_uid, datetime.now().isoformat())
+                        'VALUES (?, ?, ?, NULL, ?)',
+                        (ticket_id, 'ticket', new_team_id, datetime.now().isoformat())
                     )
-                changes.append(f'Team → {team["name"] if team else new_team_id}')
-
-            if new_category_id:
-                cat = query_db('SELECT name FROM categories WHERE category_id = ?', (new_category_id,), one=True)
-                execute_db('UPDATE support_tickets SET category_id = ? WHERE ticket_id = ?',
-                           (new_category_id, ticket_id))
-                changes.append(f'Category → {cat["name"] if cat else new_category_id}')
-
-            if changes:
-                note_text = (reassign_note + ' | ' if reassign_note else '') + ', '.join(changes)
+                team_name = team['name'] if team else new_team_id
+                note_text = (reassign_note + ' | ' if reassign_note else '') + f'Passed to {team_name}'
                 old_ticket = query_db('SELECT status FROM support_tickets WHERE ticket_id = ?', (ticket_id,), one=True)
                 execute_db(
                     'INSERT INTO status_changes (case_id, case_type, old_status, new_status, changed_by, notes, changed_at) '
@@ -883,9 +914,7 @@ def sst_manage_ticket(ticket_id):
                     (ticket_id, 'ticket', old_ticket['status'], old_ticket['status'],
                      session['user_id'], f'[Reassigned] {note_text}', datetime.now().isoformat())
                 )
-                flash(f'Ticket reassigned: {", ".join(changes)}.', 'success')
-            else:
-                flash('No changes made — select a team or category to reassign.', 'warning')
+                flash(f'Ticket reassigned to {team_name}.', 'success')
 
         elif action == 'add_file':
             files = request.files.getlist('files')
@@ -937,18 +966,12 @@ def sst_manage_ticket(ticket_id):
         'WHERE sc.case_id = ? AND sc.case_type = ? ORDER BY sc.changed_at ASC',
         (ticket_id, 'ticket')
     )
-    teams       = query_db('SELECT * FROM teams')
-    categories  = query_db('SELECT * FROM categories')
-    # Staff members that can be assigned (ITS + Lab only; SST handles EC, not these)
-    staff_members = query_db(
-        "SELECT user_id, name, role FROM users WHERE role IN ('its_staff','lab_technician','sst_admin') ORDER BY name"
-    )
+    teams = query_db('SELECT * FROM teams')
 
     return render_template('sst/manage_ticket.html',
                            ticket=ticket, assignment=assignment,
                            comments=comments, attachments=attachments,
-                           history=history, teams=teams, categories=categories,
-                           staff_members=staff_members)
+                           history=history, teams=teams)
 
 
 @app.route('/sst/ec/<int:ec_id>', methods=['GET', 'POST'])
@@ -1036,6 +1059,76 @@ def sst_review_ec(ec_id):
                            ec=ec, comments=comments, attachments=attachments, history=history)
 
 
+@app.route('/sst/tickets')
+@login_required
+@role_required('sst_admin')
+def sst_tickets():
+    status_filter   = request.args.get('status', '')
+    category_filter = request.args.get('category', '')
+    search_query    = request.args.get('search', '').strip()
+
+    query = (
+        'SELECT t.*, c.name as category_name, u.name as creator_name '
+        'FROM support_tickets t '
+        'LEFT JOIN categories c ON t.category_id = c.category_id '
+        'LEFT JOIN users u ON t.creator_id = u.user_id '
+        'JOIN assignments a ON a.case_id = t.ticket_id AND a.case_type = ? '
+        'JOIN teams tm ON a.team_id = tm.team_id '
+        "WHERE tm.team_type = 'SST'"
+    )
+    args = ['ticket']
+    if status_filter:
+        query += ' AND t.status = ?'
+        args.append(status_filter)
+    if category_filter:
+        query += ' AND t.category_id = ?'
+        args.append(category_filter)
+    if search_query:
+        query += ' AND (u.name LIKE ? OR CAST(t.ticket_id AS TEXT) LIKE ? OR t.title LIKE ?)'
+        like = f'%{search_query}%'
+        args.extend([like, like, like])
+    query += ' ORDER BY t.created_at DESC'
+
+    tickets    = query_db(query, args)
+    categories = query_db('SELECT * FROM categories')
+    return render_template('sst/tickets.html',
+                           tickets=tickets, categories=categories,
+                           status_filter=status_filter,
+                           category_filter=category_filter,
+                           search_query=search_query)
+
+
+@app.route('/sst/ecs')
+@login_required
+@role_required('sst_admin')
+def sst_ecs():
+    ec_status_filter = request.args.get('ec_status', '')
+    ec_search_query  = request.args.get('ec_search', '').strip()
+
+    ec_query = (
+        'SELECT ec.*, m.module_code, m.title as module_title, u.name as student_name '
+        'FROM ec_applications ec '
+        'LEFT JOIN modules m ON ec.module_id = m.module_id '
+        'LEFT JOIN users u ON ec.student_id = u.user_id '
+        'WHERE ec.is_draft = 0'
+    )
+    ec_args = []
+    if ec_status_filter:
+        ec_query += ' AND ec.status = ?'
+        ec_args.append(ec_status_filter)
+    if ec_search_query:
+        ec_query += ' AND (u.name LIKE ? OR m.module_code LIKE ? OR CAST(ec.ec_id AS TEXT) LIKE ?)'
+        like = f'%{ec_search_query}%'
+        ec_args.extend([like, like, like])
+    ec_query += ' ORDER BY ec.created_at DESC'
+
+    ecs = query_db(ec_query, ec_args)
+    return render_template('sst/ecs.html',
+                           ecs=ecs,
+                           ec_status_filter=ec_status_filter,
+                           ec_search_query=ec_search_query)
+
+
 @app.route('/sst/reports')
 @login_required
 @role_required('sst_admin')
@@ -1086,6 +1179,7 @@ def sst_reports():
 @role_required('its_staff')
 def its_dashboard():
     status_filter = request.args.get('status', '')
+    search_query  = request.args.get('search', '').strip()
 
     query = (
         'SELECT t.*, c.name as category_name, u.name as creator_name '
@@ -1100,6 +1194,10 @@ def its_dashboard():
     if status_filter:
         query += ' AND t.status = ?'
         args.append(status_filter)
+    if search_query:
+        query += ' AND (u.name LIKE ? OR CAST(t.ticket_id AS TEXT) LIKE ? OR t.title LIKE ?)'
+        like = f'%{search_query}%'
+        args.extend([like, like, like])
     query += ' ORDER BY t.created_at DESC'
 
     tickets = query_db(query, args)
@@ -1111,7 +1209,8 @@ def its_dashboard():
         "JOIN teams tm ON a.team_id = tm.team_id "
         "WHERE tm.team_type = 'ITS' GROUP BY t.status"
     )
-    return render_template('its/dashboard.html', tickets=tickets, status_filter=status_filter, stats=stats)
+    return render_template('its/dashboard.html', tickets=tickets, status_filter=status_filter,
+                           search_query=search_query, stats=stats)
 
 
 @app.route('/its/ticket/<int:ticket_id>', methods=['GET', 'POST'])
@@ -1190,6 +1289,7 @@ def its_manage_ticket(ticket_id):
 @role_required('lab_technician')
 def lab_dashboard():
     status_filter = request.args.get('status', '')
+    search_query  = request.args.get('search', '').strip()
 
     query = (
         'SELECT t.*, c.name as category_name, u.name as creator_name '
@@ -1204,6 +1304,10 @@ def lab_dashboard():
     if status_filter:
         query += ' AND t.status = ?'
         args.append(status_filter)
+    if search_query:
+        query += ' AND (u.name LIKE ? OR CAST(t.ticket_id AS TEXT) LIKE ? OR t.title LIKE ?)'
+        like = f'%{search_query}%'
+        args.extend([like, like, like])
     query += ' ORDER BY t.created_at DESC'
 
     tickets = query_db(query, args)
@@ -1214,7 +1318,8 @@ def lab_dashboard():
         "JOIN teams tm ON a.team_id = tm.team_id "
         "WHERE tm.team_type = 'LAB' GROUP BY t.status"
     )
-    return render_template('lab/dashboard.html', tickets=tickets, status_filter=status_filter, stats=stats)
+    return render_template('lab/dashboard.html', tickets=tickets, status_filter=status_filter,
+                           search_query=search_query, stats=stats)
 
 
 @app.route('/lab/ticket/<int:ticket_id>', methods=['GET', 'POST'])
@@ -1577,8 +1682,39 @@ def admin_delete_user(user_id):
         return redirect(url_for('admin_dashboard'))
     user = query_db('SELECT * FROM users WHERE user_id = ?', (user_id,), one=True)
     if user:
+        # Delete all records referencing this user to satisfy FK constraints
+        # Comments authored by the user
+        execute_db('DELETE FROM comments WHERE author_id = ?', (user_id,))
+        # Status changes made by the user
+        execute_db('DELETE FROM status_changes WHERE changed_by = ?', (user_id,))
+        # Service suggestions made or reviewed by the user
+        execute_db('DELETE FROM service_suggestions WHERE suggested_by = ? OR reviewed_by = ?', (user_id, user_id))
+        # Assignments where user is assigned staff
+        execute_db('DELETE FROM assignments WHERE assigned_user_id = ?', (user_id,))
+        # Tickets created by the user (also remove their attachments and status history)
+        tickets = query_db('SELECT ticket_id FROM support_tickets WHERE creator_id = ?', (user_id,))
+        for t in tickets:
+            tid = t['ticket_id']
+            execute_db('DELETE FROM attachments WHERE case_id = ? AND case_type = ?', (tid, 'ticket'))
+            execute_db('DELETE FROM status_changes WHERE case_id = ? AND case_type = ?', (tid, 'ticket'))
+            execute_db('DELETE FROM comments WHERE case_id = ? AND case_type = ?', (tid, 'ticket'))
+            execute_db('DELETE FROM assignments WHERE case_id = ? AND case_type = ?', (tid, 'ticket'))
+        execute_db('DELETE FROM support_tickets WHERE creator_id = ?', (user_id,))
+        # EC applications by the user (also remove their attachments and status history)
+        ecs = query_db('SELECT ec_id FROM ec_applications WHERE student_id = ?', (user_id,))
+        for e in ecs:
+            eid = e['ec_id']
+            execute_db('DELETE FROM attachments WHERE case_id = ? AND case_type = ?', (eid, 'ec'))
+            execute_db('DELETE FROM status_changes WHERE case_id = ? AND case_type = ?', (eid, 'ec'))
+            execute_db('DELETE FROM comments WHERE case_id = ? AND case_type = ?', (eid, 'ec'))
+        execute_db('DELETE FROM ec_applications WHERE student_id = ?', (user_id,))
+        # Enrollments
+        execute_db('DELETE FROM enrollments WHERE student_id = ?', (user_id,))
+        # Modules where user is the organiser (set organiser to null rather than deleting)
+        execute_db('UPDATE modules SET organiser_id = NULL WHERE organiser_id = ?', (user_id,))
+        # Finally delete the user
         execute_db('DELETE FROM users WHERE user_id = ?', (user_id,))
-        flash(f'User {user["name"]} deleted.', 'warning')
+        flash(f'User {user["name"]} and all associated records deleted.', 'warning')
     return redirect(url_for('admin_dashboard'))
 
 
@@ -1653,8 +1789,8 @@ def api_team_staff(team_id):
     role = role_map.get(team['team_type'], '')
     if not role:
         return jsonify([])
-    staff = query_db('SELECT user_id, name FROM users WHERE role = ? ORDER BY name', (role,))
-    return jsonify([{'user_id': s['user_id'], 'name': s['name']} for s in staff])
+    staff = query_db('SELECT user_id, name, role FROM users WHERE role = ? ORDER BY name', (role,))
+    return jsonify([{'user_id': s['user_id'], 'name': s['name'], 'role': s['role']} for s in staff])
 
 
 # ──────────────────────────────────────────────

@@ -1,4 +1,5 @@
-{% if ec.status == 'Submitted' %}<span class="badge badge-submitted">Submitted</span>
+{% if ec.is_draft %}<span class="badge bg-secondary">Draft</span>
+{% elif ec.status == 'Submitted' %}<span class="badge badge-submitted">Submitted</span>
 {% elif ec.status == 'Under Review' %}<span class="badge badge-under-review">Under Review</span>
 {% elif ec.status == 'Approved' %}<span class="badge badge-approved">Approved</span>
 {% elif ec.status == 'Rejected' %}<span class="badge badge-rejected">Rejected</span>

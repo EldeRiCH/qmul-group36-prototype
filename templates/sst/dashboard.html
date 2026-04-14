@@ -10,38 +10,7 @@
 
 <div class="row g-4 mb-5">
 
-    <!-- LEFT: Support Tickets -->
-    <div class="col-md-6">
-        <div class="hero-card card border-0 shadow-sm h-100" style="border-left: 4px solid #6c757d !important;">
-            <div class="card-body d-flex flex-column p-4">
-                <div class="d-flex align-items-center gap-3 mb-3">
-                    <div class="hero-icon bg-secondary text-white rounded-3 d-flex align-items-center justify-content-center"
-                         style="width:64px;height:64px;font-size:1.8rem;flex-shrink:0;">
-                        <i class="bi bi-headset"></i>
-                    </div>
-                    <div>
-                        <h5 class="mb-0 fw-bold">Support Tickets</h5>
-                        <p class="mb-0 text-muted small">IT, lab, and submission issues</p>
-                    </div>
-                </div>
-                <div class="d-flex gap-4 mb-4">
-                    <div class="text-center">
-                        <div class="fw-bold fs-3 text-secondary">{{ tickets|length }}</div>
-                        <div class="text-muted small">Total</div>
-                    </div>
-                    <div class="text-center">
-                        <div class="fw-bold fs-3 text-warning">{{ open_tickets }}</div>
-                        <div class="text-muted small">Open</div>
-                    </div>
-                </div>
-                <a href="#tickets-section" class="btn btn-outline-secondary mt-auto fw-semibold">
-                    <i class="bi bi-ticket-detailed me-2"></i>View All Tickets
-                </a>
-            </div>
-        </div>
-    </div>
-
-    <!-- RIGHT: EC Applications (higher priority) -->
+    <!-- LEFT: EC Applications (higher priority) -->
     <div class="col-md-6">
         <div class="hero-card card border-0 shadow-sm h-100" style="border-left: 4px solid #003B5C !important;">
             <div class="card-body d-flex flex-column p-4">
@@ -65,84 +34,48 @@
                         <div class="text-muted small">Active</div>
                     </div>
                 </div>
-                <a href="#ecs-section" class="btn mt-auto text-white fw-semibold"
+                <a href="{{ url_for('sst_ecs') }}" class="btn mt-auto text-white fw-semibold"
                    style="background-color:#003B5C;border-color:#003B5C;">
                     <i class="bi bi-file-earmark-text me-2"></i>Review EC Applications
                 </a>
             </div>
         </div>
     </div>
-</div>
 
-<!-- TICKETS SECTION -->
-<div class="card mb-4" id="tickets-section">
-    <div class="card-header bg-white">
-        <div class="d-flex justify-content-between align-items-start flex-wrap gap-2">
-            <h6 class="mb-0"><i class="bi bi-ticket-detailed me-2"></i>All Support Tickets ({{ tickets|length }})</h6>
-            <div class="d-flex gap-2 flex-wrap">
-                <!-- Search -->
-                <form class="d-flex gap-2" method="GET">
-                    <input type="hidden" name="status"   value="{{ status_filter }}">
-                    <input type="hidden" name="category" value="{{ category_filter }}">
-                    <input type="text" name="search" class="form-control form-control-sm"
-                           placeholder="Search student, title, ID..." value="{{ search_query or '' }}" style="width:220px;">
-                    <button type="submit" class="btn btn-sm btn-primary">Search</button>
-                    {% if search_query %}
-                    <a href="{{ url_for('sst_dashboard') }}" class="btn btn-sm btn-outline-secondary">Clear</a>
-                    {% endif %}
-                </form>
-                <!-- Filters -->
-                <form class="d-flex gap-2" method="GET">
-                    <input type="hidden" name="search" value="{{ search_query or '' }}">
-                    <select name="status" class="form-select form-select-sm" style="width:auto;" onchange="this.form.submit()">
-                        <option value="">All Statuses</option>
-                        <option value="Open"        {% if status_filter == 'Open' %}selected{% endif %}>Open</option>
-                        <option value="In Progress" {% if status_filter == 'In Progress' %}selected{% endif %}>In Progress</option>
-                        <option value="Resolved"    {% if status_filter == 'Resolved' %}selected{% endif %}>Resolved</option>
-                        <option value="Closed"      {% if status_filter == 'Closed' %}selected{% endif %}>Closed</option>
-                        <option value="Withdrawn"   {% if status_filter == 'Withdrawn' %}selected{% endif %}>Withdrawn</option>
-                    </select>
-                    <select name="category" class="form-select form-select-sm" style="width:auto;" onchange="this.form.submit()">
-                        <option value="">All Categories</option>
-                        {% for cat in categories %}
-                        <option value="{{ cat.category_id }}" {% if category_filter == cat.category_id|string %}selected{% endif %}>{{ cat.name }}</option>
-                        {% endfor %}
-                    </select>
-                </form>
+    <!-- RIGHT: Support Tickets -->
+    <div class="col-md-6">
+        <div class="hero-card card border-0 shadow-sm h-100" style="border-left: 4px solid #6c757d !important;">
+            <div class="card-body d-flex flex-column p-4">
+                <div class="d-flex align-items-center gap-3 mb-3">
+                    <div class="hero-icon bg-secondary text-white rounded-3 d-flex align-items-center justify-content-center"
+                         style="width:64px;height:64px;font-size:1.8rem;flex-shrink:0;">
+                        <i class="bi bi-headset"></i>
+                    </div>
+                    <div>
+                        <h5 class="mb-0 fw-bold">Support Tickets</h5>
+                        <p class="mb-0 text-muted small">IT, lab, and submission issues</p>
+                    </div>
+                </div>
+                <div class="d-flex gap-4 mb-4">
+                    <div class="text-center">
+                        <div class="fw-bold fs-3 text-secondary">{{ tickets|length }}</div>
+                        <div class="text-muted small">Total</div>
+                    </div>
+                    <div class="text-center">
+                        <div class="fw-bold fs-3 text-warning">{{ open_tickets }}</div>
+                        <div class="text-muted small">Open</div>
+                    </div>
+                </div>
+                <a href="{{ url_for('sst_tickets') }}" class="btn btn-outline-secondary mt-auto fw-semibold">
+                    <i class="bi bi-ticket-detailed me-2"></i>View All Tickets
+                </a>
             </div>
         </div>
     </div>
-    <div class="card-body p-0">
-        {% if tickets %}
-        <div class="table-responsive">
-            <table class="table table-hover mb-0" id="sstTicketTable" data-paginate="15">
-                <thead>
-                    <tr><th>ID</th><th>Student</th><th>Title</th><th>Category</th><th>Status</th><th>Date</th><th></th></tr>
-                </thead>
-                <tbody>
-                    {% for ticket in tickets %}
-                    <tr>
-                        <td><span class="fw-semibold small" style="color:#003B5C;">{{ ticket.ticket_id | ticket_ref }}</span></td>
-                        <td>{{ ticket.creator_name }}</td>
-                        <td>{{ ticket.title }}</td>
-                        <td><span class="text-muted small">{{ ticket.category_name or '—' }}</span></td>
-                        <td>{% include 'partials/ticket_badge.html' %}</td>
-                        <td class="text-muted small">{{ ticket.created_at[:10] }}</td>
-                        <td><a href="{{ url_for('sst_manage_ticket', ticket_id=ticket.ticket_id) }}" class="btn btn-sm btn-outline-primary">Manage</a></td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
-        <div id="sstTicketTablePager" class="d-flex justify-content-between align-items-center px-3 py-2 border-top" style="display:none!important;font-size:0.82rem;"></div>
-        {% else %}
-        <div class="text-center py-4 text-muted">No tickets found.</div>
-        {% endif %}
-    </div>
 </div>
 
-<!-- EC APPLICATIONS SECTION -->
-<div class="card" id="ecs-section">
+<!-- EC APPLICATIONS SECTION (first) -->
+<div class="card mb-4" id="ecs-section">
     <div class="card-header bg-white">
         <div class="d-flex justify-content-between align-items-start flex-wrap gap-2">
             <h6 class="mb-0"><i class="bi bi-file-earmark-text me-2"></i>EC Applications ({{ ecs|length }})</h6>
@@ -204,6 +137,73 @@
         <div id="sstEcTablePager" class="d-flex justify-content-between align-items-center px-3 py-2 border-top" style="display:none!important;font-size:0.82rem;"></div>
         {% else %}
         <div class="text-center py-4 text-muted">No EC applications found.</div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- TICKETS SECTION (second) -->
+<div class="card" id="tickets-section">
+    <div class="card-header bg-white">
+        <div class="d-flex justify-content-between align-items-start flex-wrap gap-2">
+            <h6 class="mb-0"><i class="bi bi-ticket-detailed me-2"></i>All Support Tickets ({{ tickets|length }})</h6>
+            <div class="d-flex gap-2 flex-wrap">
+                <!-- Search -->
+                <form class="d-flex gap-2" method="GET">
+                    <input type="hidden" name="status"   value="{{ status_filter }}">
+                    <input type="hidden" name="category" value="{{ category_filter }}">
+                    <input type="text" name="search" class="form-control form-control-sm"
+                           placeholder="Search student, title, ID..." value="{{ search_query or '' }}" style="width:220px;">
+                    <button type="submit" class="btn btn-sm btn-primary">Search</button>
+                    {% if search_query %}
+                    <a href="{{ url_for('sst_dashboard') }}" class="btn btn-sm btn-outline-secondary">Clear</a>
+                    {% endif %}
+                </form>
+                <!-- Filters -->
+                <form class="d-flex gap-2" method="GET">
+                    <input type="hidden" name="search" value="{{ search_query or '' }}">
+                    <select name="status" class="form-select form-select-sm" style="width:auto;" onchange="this.form.submit()">
+                        <option value="">All Statuses</option>
+                        <option value="Open"        {% if status_filter == 'Open' %}selected{% endif %}>Open</option>
+                        <option value="In Progress" {% if status_filter == 'In Progress' %}selected{% endif %}>In Progress</option>
+                        <option value="Resolved"    {% if status_filter == 'Resolved' %}selected{% endif %}>Resolved</option>
+                        <option value="Closed"      {% if status_filter == 'Closed' %}selected{% endif %}>Closed</option>
+                        <option value="Withdrawn"   {% if status_filter == 'Withdrawn' %}selected{% endif %}>Withdrawn</option>
+                    </select>
+                    <select name="category" class="form-select form-select-sm" style="width:auto;" onchange="this.form.submit()">
+                        <option value="">All Categories</option>
+                        {% for cat in categories %}
+                        <option value="{{ cat.category_id }}" {% if category_filter == cat.category_id|string %}selected{% endif %}>{{ cat.name }}</option>
+                        {% endfor %}
+                    </select>
+                </form>
+            </div>
+        </div>
+    </div>
+    <div class="card-body p-0">
+        {% if tickets %}
+        <div class="table-responsive">
+            <table class="table table-hover mb-0" id="sstTicketTable" data-paginate="15">
+                <thead>
+                    <tr><th>ID</th><th>Student</th><th>Title</th><th>Category</th><th>Status</th><th>Date</th><th></th></tr>
+                </thead>
+                <tbody>
+                    {% for ticket in tickets %}
+                    <tr>
+                        <td><span class="fw-semibold small" style="color:#003B5C;">{{ ticket.ticket_id | ticket_ref }}</span></td>
+                        <td>{{ ticket.creator_name }}</td>
+                        <td>{{ ticket.title }}</td>
+                        <td><span class="text-muted small">{{ ticket.category_name or '—' }}</span></td>
+                        <td>{% include 'partials/ticket_badge.html' %}</td>
+                        <td class="text-muted small">{{ ticket.created_at[:10] }}</td>
+                        <td><a href="{{ url_for('sst_manage_ticket', ticket_id=ticket.ticket_id) }}" class="btn btn-sm btn-outline-primary">Manage</a></td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        <div id="sstTicketTablePager" class="d-flex justify-content-between align-items-center px-3 py-2 border-top" style="display:none!important;font-size:0.82rem;"></div>
+        {% else %}
+        <div class="text-center py-4 text-muted">No tickets found.</div>
         {% endif %}
     </div>
 </div>

@@ -4,12 +4,13 @@
 {% block content %}
 <div class="d-flex align-items-center mb-4">
     <a href="{{ url_for('lab_dashboard') }}" class="btn btn-sm btn-outline-secondary me-3"><i class="bi bi-arrow-left"></i> Back</a>
-    <h4 class="mb-0">Lab Ticket #{{ ticket.ticket_id }}</h4>
+    <h4 class="mb-0">{{ ticket.ticket_id | ticket_ref }}</h4>
     <span class="ms-3 fs-6">{% include 'partials/ticket_badge.html' %}</span>
 </div>
 
 <div class="row">
-    <div class="col-lg-8">
+    <!-- LEFT: Ticket details + attachments + status update -->
+    <div class="col-lg-7">
         <div class="card mb-4">
             <div class="card-header bg-white"><h6 class="mb-0">Ticket Details</h6></div>
             <div class="card-body">
@@ -34,7 +35,7 @@
             </div>
         </div>
 
-        <!-- Attachments with download -->
+        <!-- Attachments -->
         <div class="card mb-4">
             <div class="card-header bg-white"><h6 class="mb-0"><i class="bi bi-paperclip me-1"></i>Attachments ({{ attachments|length }})</h6></div>
             <div class="card-body">
@@ -45,12 +46,13 @@
 
         <!-- Update Status -->
         <div class="card mb-4">
-            <div class="card-header bg-white"><h6 class="mb-0">Update Status</h6></div>
+            <div class="card-header bg-white"><h6 class="mb-0"><i class="bi bi-arrow-repeat me-1"></i>Update Status</h6></div>
             <div class="card-body">
                 <form method="POST">
                     <input type="hidden" name="action" value="update_status">
                     <div class="row g-3 mb-3">
                         <div class="col-md-4">
+                            <label class="form-label small text-muted">New Status</label>
                             <select name="new_status" class="form-select" required>
                                 <option value="Open"        {% if ticket.status == 'Open' %}selected{% endif %}>Open</option>
                                 <option value="In Progress" {% if ticket.status == 'In Progress' %}selected{% endif %}>In Progress</option>
@@ -59,8 +61,9 @@
                             </select>
                         </div>
                         <div class="col-md-8">
+                            <label class="form-label small text-muted">Resolution <span class="text-danger">(required for Resolved/Closed)</span></label>
                             <input type="text" name="resolution" class="form-control"
-                                   placeholder="Resolution (required for Resolved/Closed)"
+                                   placeholder="Describe how the issue was resolved..."
                                    value="{{ ticket.resolution or '' }}">
                         </div>
                     </div>
@@ -68,14 +71,18 @@
                         <input type="text" name="notes" class="form-control form-control-sm"
                                placeholder="Optional internal note...">
                     </div>
-                    <button type="submit" class="btn btn-primary btn-sm" style="background-color:#003B5C;border-color:#003B5C;">Update</button>
+                    <button type="submit" class="btn btn-primary btn-sm" style="background-color:#003B5C;border-color:#003B5C;">Update Status</button>
                 </form>
             </div>
         </div>
+    </div>
+
+    <!-- RIGHT: Comments + Status History -->
+    <div class="col-lg-5">
 
         <!-- Add Comment -->
         <div class="card mb-4">
-            <div class="card-header bg-white"><h6 class="mb-0">Add Comment</h6></div>
+            <div class="card-header bg-white"><h6 class="mb-0"><i class="bi bi-chat-dots me-1"></i>Add Comment</h6></div>
             <div class="card-body">
                 <form method="POST">
                     <input type="hidden" name="action" value="add_comment">
@@ -85,8 +92,8 @@
             </div>
         </div>
 
-        <!-- Comments -->
-        <div class="card">
+        <!-- Comments List -->
+        <div class="card mb-4">
             <div class="card-header bg-white"><h6 class="mb-0">Comments ({{ comments|length }})</h6></div>
             <div class="card-body">
                 {% for comment in comments %}
@@ -102,9 +109,8 @@
                 {% endfor %}
             </div>
         </div>
-    </div>
 
-    <div class="col-lg-4">
+        <!-- Status History -->
         <div class="card">
             <div class="card-header bg-white"><h6 class="mb-0">Status History</h6></div>
             <div class="card-body">

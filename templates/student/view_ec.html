@@ -54,14 +54,24 @@
         </div>
         {% endif %}
 
-        {% if attachments %}
         <div class="card mb-4">
             <div class="card-header bg-white"><h6 class="mb-0"><i class="bi bi-paperclip me-1"></i>Attachments ({{ attachments|length }})</h6></div>
-            <div class="card-body pb-0">
-                {% for att in attachments %}{% include 'partials/attachment_row.html' %}{% endfor %}
+            <div class="card-body">
+                {% for att in attachments %}{% include 'partials/attachment_row.html' %}
+                {% else %}<p class="text-muted mb-2">No attachments.</p>{% endfor %}
+
+                {% if ec.status == 'Action Required' %}
+                <form method="POST" enctype="multipart/form-data" class="mt-3 border-top pt-3">
+                    <input type="hidden" name="action" value="add_file">
+                    <div class="d-flex gap-2 align-items-center">
+                        <input type="file" name="files" multiple class="form-control form-control-sm"
+                               accept=".pdf,.png,.jpg,.jpeg,.doc,.docx">
+                        <button type="submit" class="btn btn-sm btn-outline-primary text-nowrap">Upload Evidence</button>
+                    </div>
+                </form>
+                {% endif %}
             </div>
         </div>
-        {% endif %}
 
         <!-- Comments -->
         <div class="card mb-4">
@@ -155,10 +165,17 @@
                 <h6 class="mb-0"><i class="bi bi-exclamation-triangle me-2 text-warning"></i>Action Required</h6>
             </div>
             <div class="card-body">
-                <p class="mb-2" style="font-size:0.85rem;">SST need more information. Please read the decision notes carefully and upload additional evidence or respond via the comments below.</p>
-                <a href="#" class="btn btn-sm btn-warning text-dark fw-semibold">
-                    <i class="bi bi-upload me-1"></i>Upload Evidence
-                </a>
+                <p class="mb-3" style="font-size:0.85rem;">SST need more information. Please read the decision notes carefully and upload additional evidence or respond via the comments below.</p>
+                <form method="POST" enctype="multipart/form-data">
+                    <input type="hidden" name="action" value="add_file">
+                    <div class="mb-2">
+                        <input type="file" name="files" multiple class="form-control form-control-sm"
+                               accept=".pdf,.png,.jpg,.jpeg,.doc,.docx">
+                    </div>
+                    <button type="submit" class="btn btn-sm btn-warning text-dark fw-semibold">
+                        <i class="bi bi-upload me-1"></i>Upload Evidence
+                    </button>
+                </form>
             </div>
         </div>
         {% endif %}
