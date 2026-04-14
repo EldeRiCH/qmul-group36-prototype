@@ -62,6 +62,16 @@ def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 
+# ── Reference number formatters ──────────────────────────────────────────────
+@app.template_filter('ticket_ref')
+def ticket_ref(ticket_id):
+    return f'TKT-2025-{int(ticket_id):04d}'
+
+@app.template_filter('ec_ref')
+def ec_ref(ec_id):
+    return f'EC-2025-{int(ec_id):04d}'
+
+
 # ──────────────────────────────────────────────
 # AUTH DECORATORS
 # ──────────────────────────────────────────────
@@ -136,10 +146,11 @@ def login():
             (email, password), one=True
         )
         if user:
-            session['user_id'] = user['user_id']
-            session['name']    = user['name']
-            session['email']   = user['email']
-            session['role']    = user['role']
+            session['user_id']    = user['user_id']
+            session['name']       = user['name']
+            session['email']      = user['email']
+            session['role']       = user['role']
+            session['year_group'] = user['year_group']   # None for non-students
             flash(f'Welcome, {user["name"]}!', 'success')
             return redirect(url_for('dashboard'))
         else:
@@ -177,6 +188,37 @@ def dashboard():
 # ──────────────────────────────────────────────
 # FILE DOWNLOAD ROUTE (staff + student owner)
 # ──────────────────────────────────────────────
+
+@app.route('/preview/<int:attachment_id>')
+@login_required
+def preview_file(attachment_id):
+    """Serve a file inline so the browser can display it (PDF/images)."""
+    att = query_db('SELECT * FROM attachments WHERE attachment_id = ?', (attachment_id,), one=True)
+    if not att:
+        flash('File not found.', 'danger')
+        return redirect(url_for('dashboard'))
+
+    role = session.get('role')
+    uid  = session['user_id']
+    if role == 'student':
+        if att['case_type'] == 'ticket':
+            ticket = query_db('SELECT creator_id FROM support_tickets WHERE ticket_id = ?', (att['case_id'],), one=True)
+            if not ticket or ticket['creator_id'] != uid:
+                flash('Access denied.', 'danger')
+                return redirect(url_for('dashboard'))
+        elif att['case_type'] == 'ec':
+            ec = query_db('SELECT student_id FROM ec_applications WHERE ec_id = ?', (att['case_id'],), one=True)
+            if not ec or ec['student_id'] != uid:
+                flash('Access denied.', 'danger')
+                return redirect(url_for('dashboard'))
+
+    return send_from_directory(
+        app.config['UPLOAD_FOLDER'],
+        att['file_path'],
+        as_attachment=False,          # inline – browser renders PDF/images
+        download_name=att['file_name']
+    )
+
 
 @app.route('/download/<int:attachment_id>')
 @login_required
@@ -232,14 +274,30 @@ def student_dashboard():
         'WHERE ec.student_id = ? ORDER BY ec.created_at DESC',
         (uid,)
     )
-    return render_template('student/dashboard.html', tickets=tickets, ecs=ecs)
+    # Activity feed: recent status changes on the student's cases
+    activity = query_db(
+        'SELECT sc.case_type, sc.case_id, sc.new_status, sc.changed_at, '
+        '  COALESCE(t.title, m.module_code) as case_title '
+        'FROM status_changes sc '
+        'LEFT JOIN support_tickets t ON sc.case_id = t.ticket_id AND sc.case_type = "ticket" '
+        'LEFT JOIN ec_applications ec ON sc.case_id = ec.ec_id AND sc.case_type = "ec" '
+        'LEFT JOIN modules m ON ec.module_id = m.module_id '
+        'WHERE (sc.case_type = "ticket" AND t.creator_id = ?) '
+        '   OR (sc.case_type = "ec" AND ec.student_id = ?) '
+        'ORDER BY sc.changed_at DESC LIMIT 8',
+        (uid, uid)
+    )
+    return render_template('student/dashboard.html', tickets=tickets, ecs=ecs, activity=activity)
 
 
 @app.route('/student/submit-ticket', methods=['GET', 'POST'])
 @login_required
 @role_required('student')
 def submit_ticket():
-    categories = query_db('SELECT * FROM categories')
+    categories = query_db(
+        'SELECT c.*, t.name as team_name, t.team_type '
+        'FROM categories c LEFT JOIN teams t ON c.default_team_id = t.team_id'
+    )
 
     if request.method == 'POST':
         category_id = request.form.get('category_id')
@@ -330,7 +388,7 @@ def submit_ec():
     if request.method == 'POST':
         module_id     = request.form.get('module_id')
         assessment_id = request.form.get('assessment_id')
-        year_group    = request.form.get('year_group', '').strip()
+        year_group    = session.get('year_group', '')
         reason        = request.form.get('reason', '').strip()
         description   = request.form.get('description', '').strip()
         is_draft      = 1 if request.form.get('save_draft') else 0
@@ -350,7 +408,7 @@ def submit_ec():
         )
 
         if not is_draft:
-            sst_team = query_db("SELECT team_id FROM teams WHERE name = 'Student Support Team'", one=True)
+            sst_team = query_db("SELECT team_id FROM teams WHERE team_type = 'SST'", one=True)
             if sst_team:
                 execute_db(
                     'INSERT INTO assignments (case_id, case_type, team_id, assigned_at) VALUES (?, ?, ?, ?)',
@@ -394,7 +452,7 @@ def student_submit_draft(ec_id):
         return redirect(url_for('student_dashboard'))
 
     execute_db('UPDATE ec_applications SET is_draft = 0 WHERE ec_id = ?', (ec_id,))
-    sst_team = query_db("SELECT team_id FROM teams WHERE name = 'Student Support Team'", one=True)
+    sst_team = query_db("SELECT team_id FROM teams WHERE team_type = 'SST'", one=True)
     if sst_team:
         existing = query_db("SELECT * FROM assignments WHERE case_id = ? AND case_type = 'ec'", (ec_id,), one=True)
         if not existing:
@@ -475,7 +533,8 @@ def student_view_ticket(ticket_id):
 @role_required('student')
 def student_view_ec(ec_id):
     ec = query_db(
-        'SELECT ec.*, m.title as module_title, m.module_code, a.name as assessment_name '
+        'SELECT ec.*, m.title as module_title, m.module_code, '
+        'a.name as assessment_name, a.due_date as assessment_due '
         'FROM ec_applications ec '
         'LEFT JOIN modules m ON ec.module_id = m.module_id '
         'LEFT JOIN assessments a ON ec.assessment_id = a.assessment_id '
@@ -527,13 +586,17 @@ def sst_dashboard():
     category_filter = request.args.get('category', '')
     search_query    = request.args.get('search', '').strip()
 
+    # SST only sees tickets assigned to the SST team (ITS and Lab handle their own)
     ticket_query = (
         'SELECT t.*, c.name as category_name, u.name as creator_name '
         'FROM support_tickets t '
         'LEFT JOIN categories c ON t.category_id = c.category_id '
-        'LEFT JOIN users u ON t.creator_id = u.user_id WHERE 1=1'
+        'LEFT JOIN users u ON t.creator_id = u.user_id '
+        'JOIN assignments a ON a.case_id = t.ticket_id AND a.case_type = ? '
+        'JOIN teams tm ON a.team_id = tm.team_id '
+        "WHERE tm.team_type = 'SST'"
     )
-    args = []
+    args = ['ticket']
     if status_filter:
         ticket_query += ' AND t.status = ?'
         args.append(status_filter)
@@ -684,9 +747,9 @@ def sst_manage_ticket(ticket_id):
     )
     teams       = query_db('SELECT * FROM teams')
     categories  = query_db('SELECT * FROM categories')
-    # Staff members that can be assigned (all non-student roles)
+    # Staff members that can be assigned (ITS + Lab only; SST handles EC, not these)
     staff_members = query_db(
-        "SELECT user_id, name, role FROM users WHERE role != 'student' ORDER BY name"
+        "SELECT user_id, name, role FROM users WHERE role IN ('its_staff','lab_technician','sst_admin') ORDER BY name"
     )
 
     return render_template('sst/manage_ticket.html',
@@ -749,7 +812,8 @@ def sst_review_ec(ec_id):
         return redirect(url_for('sst_review_ec', ec_id=ec_id))
 
     ec = query_db(
-        'SELECT ec.*, m.module_code, m.title as module_title, a.name as assessment_name, '
+        'SELECT ec.*, m.module_code, m.title as module_title, '
+        'a.name as assessment_name, a.due_date as assessment_due, '
         'u.name as student_name, u.email as student_email '
         'FROM ec_applications ec '
         'LEFT JOIN modules m ON ec.module_id = m.module_id '
@@ -1043,6 +1107,49 @@ def organiser_dashboard():
         )
 
     return render_template('organiser/dashboard.html', ecs=ecs, modules=organiser_modules)
+
+
+@app.route('/organiser/ec/<int:ec_id>')
+@login_required
+@role_required('module_organiser')
+def organiser_view_ec(ec_id):
+    """Read-only EC detail view for module organisers."""
+    ec = query_db(
+        'SELECT ec.*, m.module_code, m.title as module_title, '
+        'a.name as assessment_name, a.due_date as assessment_due, '
+        'u.name as student_name, u.email as student_email '
+        'FROM ec_applications ec '
+        'LEFT JOIN modules m ON ec.module_id = m.module_id '
+        'LEFT JOIN assessments a ON ec.assessment_id = a.assessment_id '
+        'LEFT JOIN users u ON ec.student_id = u.user_id '
+        'WHERE ec.ec_id = ? AND m.organiser_id = ?',
+        (ec_id, session['user_id']), one=True
+    )
+    if not ec:
+        flash('EC application not found or access denied.', 'danger')
+        return redirect(url_for('organiser_dashboard'))
+
+    history = query_db(
+        'SELECT sc.*, u.name as changed_by_name FROM status_changes sc '
+        'LEFT JOIN users u ON sc.changed_by = u.user_id '
+        'WHERE sc.case_id = ? AND sc.case_type = ? ORDER BY sc.changed_at ASC',
+        (ec_id, 'ec')
+    )
+    attachments = query_db('SELECT * FROM attachments WHERE case_id = ? AND case_type = ?', (ec_id, 'ec'))
+
+    return render_template('organiser/view_ec.html', ec=ec, history=history, attachments=attachments)
+
+
+# ──────────────────────────────────────────────
+# STUDENT — READ-ONLY SERVICES PAGE
+# ──────────────────────────────────────────────
+
+@app.route('/student/services')
+@login_required
+@role_required('student')
+def student_services():
+    services = query_db('SELECT * FROM service_status ORDER BY name')
+    return render_template('student/services.html', services=services)
 
 
 # ──────────────────────────────────────────────

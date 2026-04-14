@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}Submit Ticket - QMUL Issues & Feedback{% endblock %}
+{% block title %}Submit Ticket - QMUL Student Portal{% endblock %}
 
 {% block content %}
 <div class="row justify-content-center">
@@ -14,40 +14,52 @@
         <div class="card">
             <div class="card-body p-4">
                 <form method="POST" enctype="multipart/form-data">
+
                     <div class="mb-3">
-                        <label for="category_id" class="form-label">Category <span class="text-danger">*</span></label>
+                        <label for="category_id" class="form-label fw-semibold">Category <span class="text-danger">*</span></label>
                         <select class="form-select" id="category_id" name="category_id" required>
                             <option value="">-- Select a category --</option>
                             {% for cat in categories %}
-                            <option value="{{ cat.category_id }}">{{ cat.name }}</option>
+                            <option value="{{ cat.category_id }}"
+                                    data-team="{{ cat.team_name or '' }}"
+                                    data-type="{{ cat.team_type or '' }}">
+                                {{ cat.name }}
+                            </option>
                             {% endfor %}
                         </select>
-                        <div class="form-text">Select the category that best describes your issue.</div>
+
+                        <!-- Routing hint — shown after selection -->
+                        <div id="routingHint" class="mt-2" style="display:none;">
+                            <div class="d-flex align-items-center gap-2 px-3 py-2 rounded"
+                                 id="routingBadge" style="font-size:0.85rem;">
+                            </div>
+                        </div>
                     </div>
 
                     <div class="mb-3">
-                        <label for="title" class="form-label">Title <span class="text-danger">*</span></label>
+                        <label for="title" class="form-label fw-semibold">Title <span class="text-danger">*</span></label>
                         <input type="text" class="form-control" id="title" name="title"
                                placeholder="Brief summary of the issue" required maxlength="200">
                     </div>
 
                     <div class="mb-3">
-                        <label for="description" class="form-label">Description <span class="text-danger">*</span></label>
+                        <label for="description" class="form-label fw-semibold">Description <span class="text-danger">*</span></label>
                         <textarea class="form-control" id="description" name="description" rows="5"
                                   placeholder="Describe the issue in detail. Include location, time, and any error messages."
                                   required></textarea>
                     </div>
 
                     <div class="mb-4">
-                        <label for="evidence" class="form-label">Supporting Evidence (Optional)</label>
-                        <input class="form-control" type="file" id="evidence" name="evidence"
+                        <label for="evidence" class="form-label fw-semibold">Supporting Evidence <small class="fw-normal text-muted">(optional — multiple files)</small></label>
+                        <input class="form-control" type="file" id="evidence" name="evidence" multiple
                                accept=".pdf,.png,.jpg,.jpeg,.doc,.docx">
-                        <div class="form-text">Accepted formats: PDF, PNG, JPEG, DOC. Max 16MB.</div>
+                        <div class="form-text">Accepted: PDF, PNG, JPEG, DOC, DOCX. Max 32 MB total.</div>
                     </div>
 
                     <div class="d-flex gap-2">
-                        <button type="submit" class="btn btn-primary" style="background-color: #003B5C; border-color: #003B5C;">
-                            <i class="bi bi-send me-1"></i> Submit Ticket
+                        <button type="submit" class="btn fw-semibold text-white"
+                                style="background-color:#003B5C;border-color:#003B5C;">
+                            <i class="bi bi-send me-1"></i>Submit Ticket
                         </button>
                         <a href="{{ url_for('student_dashboard') }}" class="btn btn-outline-secondary">Cancel</a>
                     </div>
@@ -56,4 +68,57 @@
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function () {
+    const TEAM_INFO = {
+        'SST': {
+            icon:  'bi-people-fill',
+            color: '#003B5C',
+            bg:    '#e8f0f7',
+            label: 'Handled by the Student Support Team',
+            note:  'For general enquiries, submission issues and service availability.'
+        },
+        'ITS': {
+            icon:  'bi-pc-display-horizontal',
+            color: '#0d6efd',
+            bg:    '#e7f0ff',
+            label: 'Routed to EECS IT Services (ITL)',
+            note:  'For software, hardware and IT lab issues in the IT Learning Suite.'
+        },
+        'LAB': {
+            icon:  'bi-cpu-fill',
+            color: '#fd7e14',
+            bg:    '#fff3e0',
+            label: 'Routed to EE Lab Technicians',
+            note:  'For Engineering Lab equipment, benches and lab access problems.'
+        }
+    };
+
+    const select = document.getElementById('category_id');
+    const hint   = document.getElementById('routingHint');
+    const badge  = document.getElementById('routingBadge');
+
+    select.addEventListener('change', function () {
+        const opt  = this.options[this.selectedIndex];
+        const type = opt.dataset.type;
+        const info = TEAM_INFO[type];
+
+        if (info) {
+            badge.style.background = info.bg;
+            badge.innerHTML = `
+                <i class="bi ${info.icon}" style="color:${info.color}; font-size:1.1rem;"></i>
+                <div>
+                    <span class="fw-semibold" style="color:${info.color};">${info.label}</span>
+                    <span class="text-muted ms-1">— ${info.note}</span>
+                </div>`;
+            hint.style.display = '';
+        } else {
+            hint.style.display = 'none';
+        }
+    });
+})();
+</script>
 {% endblock %}

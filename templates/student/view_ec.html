@@ -17,7 +17,17 @@
             <div class="card-header bg-white"><h6 class="mb-0">Application Details</h6></div>
             <div class="card-body">
                 <div class="row mb-3"><div class="col-sm-4 text-muted">Module</div><div class="col-sm-8">{{ ec.module_code }} — {{ ec.module_title }}</div></div>
-                <div class="row mb-3"><div class="col-sm-4 text-muted">Assessment</div><div class="col-sm-8">{{ ec.assessment_name or '—' }}</div></div>
+                <div class="row mb-3">
+                    <div class="col-sm-4 text-muted">Assessment</div>
+                    <div class="col-sm-8">
+                        {{ ec.assessment_name or '—' }}
+                        {% if ec.assessment_due %}
+                        <span class="ms-2 badge {% if ec.assessment_due < ec.created_at[:10] %}bg-danger{% else %}bg-warning text-dark{% endif %}">
+                            <i class="bi bi-calendar-event me-1"></i>Due {{ ec.assessment_due }}
+                        </span>
+                        {% endif %}
+                    </div>
+                </div>
                 <div class="row mb-3"><div class="col-sm-4 text-muted">Year Group</div><div class="col-sm-8">{{ ec.year_group or '—' }}</div></div>
                 <div class="row mb-3"><div class="col-sm-4 text-muted">Reason</div><div class="col-sm-8">{{ ec.reason }}</div></div>
                 <div class="row mb-3"><div class="col-sm-4 text-muted">Description</div>
@@ -44,22 +54,11 @@
         </div>
         {% endif %}
 
-        <!-- Attachments with download -->
         {% if attachments %}
         <div class="card mb-4">
-            <div class="card-header bg-white"><h6 class="mb-0"><i class="bi bi-paperclip me-1"></i>Attachments</h6></div>
-            <div class="card-body">
-                {% for att in attachments %}
-                <div class="d-flex align-items-center gap-3 mb-2">
-                    <i class="bi bi-file-earmark text-muted"></i>
-                    <span>{{ att.file_name }}</span>
-                    <span class="text-muted small">{{ att.uploaded_at[:10] }}</span>
-                    <a href="{{ url_for('download_file', attachment_id=att.attachment_id) }}"
-                       class="btn btn-sm btn-outline-secondary ms-auto">
-                        <i class="bi bi-download me-1"></i> Download
-                    </a>
-                </div>
-                {% endfor %}
+            <div class="card-header bg-white"><h6 class="mb-0"><i class="bi bi-paperclip me-1"></i>Attachments ({{ attachments|length }})</h6></div>
+            <div class="card-body pb-0">
+                {% for att in attachments %}{% include 'partials/attachment_row.html' %}{% endfor %}
             </div>
         </div>
         {% endif %}

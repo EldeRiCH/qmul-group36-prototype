@@ -1,115 +1,315 @@
 {% extends "base.html" %}
-{% block title %}My Dashboard - QMUL Issues & Feedback{% endblock %}
+{% block title %}My Dashboard - QMUL Student Portal{% endblock %}
 
 {% block content %}
-<div class="d-flex justify-content-between align-items-center mb-4">
-    <h4 class="mb-0"><i class="bi bi-house-door me-2"></i>My Dashboard</h4>
-    <div class="d-flex gap-2">
-        <a href="{{ url_for('submit_ticket') }}" class="btn btn-primary btn-sm" style="background-color:#003B5C;border-color:#003B5C;">
-            <i class="bi bi-plus-circle me-1"></i> New Ticket
-        </a>
-        <a href="{{ url_for('submit_ec') }}" class="btn btn-outline-primary btn-sm">
-            <i class="bi bi-file-earmark-plus me-1"></i> New EC Application
-        </a>
+
+<!-- ── HERO CARDS ─────────────────────────────────────────────────────── -->
+{% set open_tickets = tickets | rejectattr('status','in',['Resolved','Closed','Withdrawn']) | list | length %}
+{% set active_ecs   = ecs | rejectattr('status','in',['Approved','Rejected','Withdrawn']) | rejectattr('is_draft', 'equalto', 1) | list | length %}
+
+<div class="row g-4 mb-5">
+
+    <!-- EC APPLICATIONS CARD (left — highest priority) -->
+    <div class="col-md-6">
+        <div class="hero-card card border-0 shadow-sm h-100" style="border-left: 4px solid #003B5C !important;">
+            <div class="card-body d-flex flex-column p-4">
+                <div class="d-flex align-items-center gap-3 mb-3">
+                    <div class="hero-icon rounded-3 d-flex align-items-center justify-content-center text-white"
+                         style="width:64px;height:64px;font-size:1.8rem;flex-shrink:0;background-color:#003B5C;">
+                        <i class="bi bi-file-earmark-medical"></i>
+                    </div>
+                    <div>
+                        <h5 class="mb-0 fw-bold">EC Applications</h5>
+                        <p class="mb-0 text-muted small">Extenuating circumstances for assessments</p>
+                    </div>
+                </div>
+                <div class="d-flex gap-4 mb-4">
+                    <div class="text-center">
+                        <div class="fw-bold fs-3" style="color:#003B5C;">{{ ecs|length }}</div>
+                        <div class="text-muted small">Total</div>
+                    </div>
+                    <div class="text-center">
+                        <div class="fw-bold fs-3 text-warning">{{ active_ecs }}</div>
+                        <div class="text-muted small">Active</div>
+                    </div>
+                </div>
+                <a href="{{ url_for('submit_ec') }}" class="btn mt-auto text-white fw-semibold"
+                   style="background-color:#003B5C;border-color:#003B5C;">
+                    <i class="bi bi-file-earmark-plus me-2"></i>New EC Application
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- SUPPORT TICKETS CARD (right) -->
+    <div class="col-md-6">
+        <div class="hero-card card border-0 shadow-sm h-100" style="border-left: 4px solid #6c757d !important;">
+            <div class="card-body d-flex flex-column p-4">
+                <div class="d-flex align-items-center gap-3 mb-3">
+                    <div class="hero-icon bg-secondary text-white rounded-3 d-flex align-items-center justify-content-center"
+                         style="width:64px;height:64px;font-size:1.8rem;flex-shrink:0;">
+                        <i class="bi bi-headset"></i>
+                    </div>
+                    <div>
+                        <h5 class="mb-0 fw-bold">Support Tickets</h5>
+                        <p class="mb-0 text-muted small">Report IT, lab, or submission issues</p>
+                    </div>
+                </div>
+                <div class="d-flex gap-4 mb-4">
+                    <div class="text-center">
+                        <div class="fw-bold fs-3 text-secondary">{{ tickets|length }}</div>
+                        <div class="text-muted small">Total</div>
+                    </div>
+                    <div class="text-center">
+                        <div class="fw-bold fs-3 text-warning">{{ open_tickets }}</div>
+                        <div class="text-muted small">Open</div>
+                    </div>
+                </div>
+                <a href="{{ url_for('submit_ticket') }}" class="btn btn-outline-secondary mt-auto fw-semibold">
+                    <i class="bi bi-plus-circle me-2"></i>Submit New Ticket
+                </a>
+            </div>
+        </div>
     </div>
 </div>
 
-<!-- MY TICKETS -->
-<div class="card mb-4">
-    <div class="card-header bg-white">
-        <h6 class="mb-0"><i class="bi bi-ticket-detailed me-2"></i>My Support Tickets ({{ tickets|length }})</h6>
-    </div>
-    <div class="card-body p-0">
-        {% if tickets %}
-        <div class="table-responsive">
-            <table class="table table-hover mb-0">
-                <thead>
-                    <tr>
-                        <th>ID</th>
-                        <th>Title</th>
-                        <th>Category</th>
-                        <th>Status</th>
-                        <th>Submitted</th>
-                        <th></th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for ticket in tickets %}
-                    <tr>
-                        <td><strong>#{{ ticket.ticket_id }}</strong></td>
-                        <td>{{ ticket.title }}</td>
-                        <td><span class="text-muted">{{ ticket.category_name or '—' }}</span></td>
-                        <td>{% include 'partials/ticket_badge.html' %}</td>
-                        <td class="text-muted small">{{ ticket.created_at[:10] }}</td>
-                        <td>
-                            <a href="{{ url_for('student_view_ticket', ticket_id=ticket.ticket_id) }}"
-                               class="btn btn-sm btn-outline-secondary">View</a>
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
-        {% else %}
-        <div class="text-center py-4 text-muted">
-            <i class="bi bi-inbox" style="font-size:2rem;"></i>
-            <p class="mt-2">No tickets submitted yet.</p>
-        </div>
-        {% endif %}
-    </div>
-</div>
+<!-- ── ACTIVITY FEED + TABLES (3-col layout on large screens) ────────── -->
+<div class="row g-4">
 
-<!-- MY EC APPLICATIONS -->
-<div class="card">
-    <div class="card-header bg-white">
-        <h6 class="mb-0"><i class="bi bi-file-earmark-text me-2"></i>My EC Applications ({{ ecs|length }})</h6>
-    </div>
-    <div class="card-body p-0">
-        {% if ecs %}
-        <div class="table-responsive">
-            <table class="table table-hover mb-0">
-                <thead>
-                    <tr>
-                        <th>ID</th>
-                        <th>Module</th>
-                        <th>Reason</th>
-                        <th>Status</th>
-                        <th>Submitted</th>
-                        <th></th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for ec in ecs %}
-                    <tr>
-                        <td>
-                            <strong>#{{ ec.ec_id }}</strong>
-                            {% if ec.is_draft %}<span class="badge bg-secondary ms-1">Draft</span>{% endif %}
-                        </td>
-                        <td>{{ ec.module_code }} — {{ ec.module_title }}</td>
-                        <td>{{ ec.reason }}</td>
-                        <td>{% include 'partials/ec_badge.html' %}</td>
-                        <td class="text-muted small">{{ ec.created_at[:10] }}</td>
-                        <td class="d-flex gap-1">
-                            <a href="{{ url_for('student_view_ec', ec_id=ec.ec_id) }}"
-                               class="btn btn-sm btn-outline-secondary">View</a>
-                            {% if ec.is_draft %}
-                            <form method="POST" action="{{ url_for('student_submit_draft', ec_id=ec.ec_id) }}">
-                                <button class="btn btn-sm btn-primary" style="background-color:#003B5C;border-color:#003B5C;"
-                                        onclick="return confirm('Submit this draft?')">Submit</button>
-                            </form>
+    <!-- LEFT: Activity Feed -->
+    <div class="col-lg-4 order-lg-last">
+        <div class="card h-100">
+            <div class="card-header">
+                <h6 class="mb-0"><i class="bi bi-clock-history me-2 text-muted"></i>Recent Activity</h6>
+            </div>
+            <div class="card-body p-0">
+                {% if activity %}
+                <ul class="list-group list-group-flush">
+                    {% for event in activity %}
+                    <li class="list-group-item px-3 py-2" style="overflow:hidden;">
+                        <div class="d-flex align-items-center gap-2 mb-1">
+                            {% if event.case_type == 'ec' %}
+                            <i class="bi bi-file-earmark-medical text-primary" style="font-size:0.85rem;flex-shrink:0;"></i>
+                            <span class="fw-semibold" style="font-size:0.78rem;color:#003B5C;flex-shrink:0;">
+                                {{ event.case_id | ec_ref }}
+                            </span>
+                            {% else %}
+                            <i class="bi bi-headset text-secondary" style="font-size:0.85rem;flex-shrink:0;"></i>
+                            <span class="fw-semibold text-muted" style="font-size:0.78rem;flex-shrink:0;">
+                                {{ event.case_id | ticket_ref }}
+                            </span>
                             {% endif %}
-                        </td>
-                    </tr>
+                            <span class="badge ms-auto flex-shrink-0
+                                {% if event.new_status in ['Approved','Resolved','Closed'] %}bg-success
+                                {% elif event.new_status in ['Rejected','Withdrawn'] %}bg-danger
+                                {% elif event.new_status == 'Action Required' %}bg-warning text-dark
+                                {% else %}bg-secondary{% endif %}"
+                                style="font-size:0.6rem;">{{ event.new_status }}</span>
+                        </div>
+                        <div class="text-truncate text-muted" style="font-size:0.76rem; padding-left:1.3rem;">
+                            {{ event.case_title or 'Unknown' }}
+                        </div>
+                        <div class="text-muted" style="font-size:0.7rem; padding-left:1.3rem;">
+                            {{ event.changed_at[:10] }} {{ event.changed_at[11:16] }}
+                        </div>
+                    </li>
                     {% endfor %}
-                </tbody>
-            </table>
+                </ul>
+                {% else %}
+                <div class="text-center py-4 text-muted small">
+                    <i class="bi bi-clock" style="font-size:1.5rem;"></i>
+                    <p class="mt-2 mb-0">No recent activity yet.</p>
+                </div>
+                {% endif %}
+            </div>
         </div>
-        {% else %}
-        <div class="text-center py-4 text-muted">
-            <i class="bi bi-file-earmark" style="font-size:2rem;"></i>
-            <p class="mt-2">No EC applications submitted yet.</p>
-        </div>
-        {% endif %}
     </div>
-</div>
+
+    <!-- RIGHT: Tables -->
+    <div class="col-lg-8">
+
+        <!-- Search / filter bar -->
+        <div class="d-flex gap-2 mb-3 align-items-center">
+            <div class="input-group input-group-sm" style="max-width:260px;">
+                <span class="input-group-text bg-white"><i class="bi bi-search text-muted"></i></span>
+                <input type="text" id="dashSearch" class="form-control border-start-0"
+                       placeholder="Search tickets &amp; ECs…">
+            </div>
+            <select id="dashStatusFilter" class="form-select form-select-sm" style="max-width:160px;">
+                <option value="">All statuses</option>
+                <option value="open">Open / Active</option>
+                <option value="resolved">Resolved / Approved</option>
+                <option value="closed">Closed / Rejected</option>
+                <option value="draft">Draft</option>
+            </select>
+            <button class="btn btn-sm btn-outline-secondary" id="dashClear" style="display:none;">
+                <i class="bi bi-x"></i> Clear
+            </button>
+        </div>
+
+        <!-- EC Applications Table -->
+        <div class="card mb-4">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h6 class="mb-0"><i class="bi bi-file-earmark-text me-2"></i>My EC Applications
+                    <span class="badge bg-light text-dark ms-1" id="ecCount">{{ ecs|length }}</span>
+                </h6>
+            </div>
+            <div class="card-body p-0">
+                {% if ecs %}
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0" id="ecTable">
+                        <thead>
+                            <tr>
+                                <th style="width:130px;">Ref</th>
+                                <th>Module</th>
+                                <th style="width:130px;">Reason</th>
+                                <th style="width:140px;">Status</th>
+                                <th style="width:90px;">Date</th>
+                                <th style="width:110px;"></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for ec in ecs %}
+                            <tr data-search="{{ ec.module_code }} {{ ec.module_title }} {{ ec.reason }} {{ ec.status }}"
+                                data-status="{{ ec.status | lower }}{% if ec.is_draft %} draft{% endif %}">
+                                <td>
+                                    <span class="fw-semibold small" style="color:#003B5C;">{{ ec.ec_id | ec_ref }}</span>
+                                    {% if ec.is_draft %}<span class="badge bg-secondary ms-1" style="font-size:0.6rem;">Draft</span>{% endif %}
+                                </td>
+                                <td class="small">{{ ec.module_code }} — {{ ec.module_title }}</td>
+                                <td class="text-muted small">{{ ec.reason }}</td>
+                                <td>{% include 'partials/ec_badge.html' %}</td>
+                                <td class="text-muted small" style="white-space:nowrap;">{{ ec.created_at[:10] }}</td>
+                                <td class="d-flex gap-1">
+                                    <a href="{{ url_for('student_view_ec', ec_id=ec.ec_id) }}"
+                                       class="btn btn-sm btn-outline-secondary">View</a>
+                                    {% if ec.is_draft %}
+                                    <form method="POST" action="{{ url_for('student_submit_draft', ec_id=ec.ec_id) }}">
+                                        <button class="btn btn-sm btn-primary" style="background-color:#003B5C;border-color:#003B5C;"
+                                                onclick="return confirm('Submit this draft now?')">Submit</button>
+                                    </form>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="text-center py-4 text-muted">
+                    <i class="bi bi-file-earmark" style="font-size:2rem;"></i>
+                    <p class="mt-2 mb-0 small">No EC applications yet.</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Support Tickets Table -->
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h6 class="mb-0"><i class="bi bi-ticket-detailed me-2"></i>My Support Tickets
+                    <span class="badge bg-light text-dark ms-1" id="ticketCount">{{ tickets|length }}</span>
+                </h6>
+            </div>
+            <div class="card-body p-0">
+                {% if tickets %}
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0" id="ticketTable">
+                        <thead>
+                            <tr>
+                                <th style="width:130px;">Ref</th>
+                                <th>Title</th>
+                                <th style="width:140px;">Category</th>
+                                <th style="width:120px;">Status</th>
+                                <th style="width:90px;">Date</th>
+                                <th style="width:70px;"></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for ticket in tickets %}
+                            <tr data-search="{{ ticket.title }} {{ ticket.category_name }} {{ ticket.status }}"
+                                data-status="{{ ticket.status | lower }}">
+                                <td>
+                                    <span class="fw-semibold small text-muted">{{ ticket.ticket_id | ticket_ref }}</span>
+                                </td>
+                                <td class="small fw-semibold">{{ ticket.title }}</td>
+                                <td><span class="text-muted small">{{ ticket.category_name or '—' }}</span></td>
+                                <td>{% include 'partials/ticket_badge.html' %}</td>
+                                <td class="text-muted small" style="white-space:nowrap;">{{ ticket.created_at[:10] }}</td>
+                                <td>
+                                    <a href="{{ url_for('student_view_ticket', ticket_id=ticket.ticket_id) }}"
+                                       class="btn btn-sm btn-outline-secondary">View</a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="text-center py-4 text-muted">
+                    <i class="bi bi-inbox" style="font-size:2rem;"></i>
+                    <p class="mt-2 mb-0 small">No tickets yet.</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+    </div><!-- /col-lg-8 -->
+</div><!-- /row -->
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function () {
+    const searchEl  = document.getElementById('dashSearch');
+    const statusEl  = document.getElementById('dashStatusFilter');
+    const clearBtn  = document.getElementById('dashClear');
+    const ecTable   = document.getElementById('ecTable');
+    const ticketTable = document.getElementById('ticketTable');
+    const ecCount   = document.getElementById('ecCount');
+    const tktCount  = document.getElementById('ticketCount');
+
+    const STATUS_MAP = {
+        'open':     ['open', 'submitted', 'in progress', 'under review', 'action required'],
+        'resolved': ['resolved', 'approved'],
+        'closed':   ['closed', 'rejected', 'withdrawn'],
+        'draft':    ['draft']
+    };
+
+    function filterTable(table, countEl, term, statusGroup) {
+        if (!table) return;
+        const rows = table.querySelectorAll('tbody tr');
+        let visible = 0;
+        rows.forEach(row => {
+            const text   = (row.dataset.search || '').toLowerCase();
+            const status = (row.dataset.status || '').toLowerCase();
+            const matchText   = !term || text.includes(term);
+            let matchStatus = true;
+            if (statusGroup && STATUS_MAP[statusGroup]) {
+                matchStatus = STATUS_MAP[statusGroup].some(s => status.includes(s));
+            }
+            const show = matchText && matchStatus;
+            row.style.display = show ? '' : 'none';
+            if (show) visible++;
+        });
+        if (countEl) countEl.textContent = visible;
+    }
+
+    function applyFilters() {
+        const term  = searchEl.value.trim().toLowerCase();
+        const group = statusEl.value;
+        filterTable(ecTable,     ecCount,  term, group);
+        filterTable(ticketTable, tktCount, term, group);
+        clearBtn.style.display = (term || group) ? '' : 'none';
+    }
+
+    searchEl.addEventListener('input', applyFilters);
+    statusEl.addEventListener('change', applyFilters);
+    clearBtn.addEventListener('click', () => {
+        searchEl.value = '';
+        statusEl.value = '';
+        applyFilters();
+    });
+})();
+</script>
 {% endblock %}

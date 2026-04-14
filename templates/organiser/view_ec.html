@@ -1,0 +1,132 @@
+{% extends "base.html" %}
+{% block title %}EC #{{ ec.ec_id }} — Module Organiser View{% endblock %}
+
+{% block content %}
+<div class="d-flex align-items-center mb-4">
+    <a href="{{ url_for('organiser_dashboard') }}" class="btn btn-sm btn-outline-secondary me-3">
+        <i class="bi bi-arrow-left"></i> Back
+    </a>
+    <h4 class="mb-0">{{ ec.ec_id | ec_ref }}</h4>
+    <span class="ms-3">{% include 'partials/ec_badge.html' %}</span>
+    <span class="ms-3 badge bg-light text-dark border">
+        <i class="bi bi-eye me-1"></i>Read-only view
+    </span>
+</div>
+
+<div class="row">
+    <div class="col-lg-8">
+
+        <!-- Application Details -->
+        <div class="card mb-4">
+            <div class="card-header bg-white"><h6 class="mb-0">Application Details</h6></div>
+            <div class="card-body">
+                <div class="row mb-2">
+                    <div class="col-sm-3 text-muted">Student</div>
+                    <div class="col-sm-9 fw-semibold">{{ ec.student_name }}</div>
+                </div>
+                <div class="row mb-2">
+                    <div class="col-sm-3 text-muted">Email</div>
+                    <div class="col-sm-9">{{ ec.student_email }}</div>
+                </div>
+                <div class="row mb-2">
+                    <div class="col-sm-3 text-muted">Year Group</div>
+                    <div class="col-sm-9">{{ ec.year_group or '—' }}</div>
+                </div>
+                <div class="row mb-2">
+                    <div class="col-sm-3 text-muted">Module</div>
+                    <div class="col-sm-9">{{ ec.module_code }} — {{ ec.module_title }}</div>
+                </div>
+                <div class="row mb-2">
+                    <div class="col-sm-3 text-muted">Assessment</div>
+                    <div class="col-sm-9">
+                        {{ ec.assessment_name or '—' }}
+                        {% if ec.assessment_due %}
+                        <span class="ms-2 badge {% if ec.assessment_due < ec.created_at[:10] %}bg-danger{% else %}bg-warning text-dark{% endif %}">
+                            <i class="bi bi-calendar-event me-1"></i>Due {{ ec.assessment_due }}
+                        </span>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="row mb-2">
+                    <div class="col-sm-3 text-muted">Reason</div>
+                    <div class="col-sm-9"><span class="badge bg-secondary">{{ ec.reason }}</span></div>
+                </div>
+                <div class="row mb-2">
+                    <div class="col-sm-3 text-muted">Description</div>
+                    <div class="col-sm-9"><div class="bg-light p-3 rounded">{{ ec.description }}</div></div>
+                </div>
+                <div class="row mb-2">
+                    <div class="col-sm-3 text-muted">Submitted</div>
+                    <div class="col-sm-9 text-muted small">{{ ec.created_at[:10] }} at {{ ec.created_at[11:16] }}</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Decision (if made) -->
+        {% if ec.status in ['Approved', 'Rejected'] %}
+        <div class="card mb-4 {% if ec.status == 'Approved' %}border-success{% else %}border-danger{% endif %}">
+            <div class="card-header {% if ec.status == 'Approved' %}bg-success text-white{% else %}bg-danger text-white{% endif %}">
+                <h6 class="mb-0">
+                    <i class="bi bi-{% if ec.status == 'Approved' %}check-circle{% else %}x-circle{% endif %} me-1"></i>
+                    Decision: {{ ec.status }}
+                </h6>
+            </div>
+            <div class="card-body">
+                {% if ec.decision_notes %}
+                <p class="mb-1">{{ ec.decision_notes }}</p>
+                {% else %}
+                <p class="text-muted mb-1">No notes provided.</p>
+                {% endif %}
+                {% if ec.decision_date %}
+                <div class="text-muted small mt-2">Decision date: {{ ec.decision_date[:10] }}</div>
+                {% endif %}
+            </div>
+        </div>
+        {% elif ec.status == 'Action Required' %}
+        <div class="alert alert-warning">
+            <i class="bi bi-exclamation-triangle me-1"></i>
+            <strong>Action Required:</strong>
+            {{ ec.decision_notes or 'Additional evidence has been requested from the student.' }}
+        </div>
+        {% endif %}
+
+        <!-- Attachments (read-only) -->
+        <div class="card mb-4">
+            <div class="card-header bg-white">
+                <h6 class="mb-0"><i class="bi bi-paperclip me-1"></i>Evidence / Attachments ({{ attachments|length }})</h6>
+            </div>
+            <div class="card-body">
+                {% for att in attachments %}
+                {% include 'partials/attachment_row.html' %}
+                {% else %}
+                <p class="text-muted mb-0">No evidence uploaded.</p>
+                {% endfor %}
+            </div>
+        </div>
+
+        <div class="alert alert-info">
+            <i class="bi bi-info-circle me-1"></i>
+            Module organisers have read-only access to EC applications. Decisions are made by the Student Support Team.
+        </div>
+    </div>
+
+    <!-- Status History -->
+    <div class="col-lg-4">
+        <div class="card">
+            <div class="card-header bg-white"><h6 class="mb-0">Status History</h6></div>
+            <div class="card-body">
+                {% for change in history %}
+                <div class="timeline-item">
+                    <strong>{{ change.new_status }}</strong>
+                    <div class="text-muted small">{{ change.changed_by_name }}</div>
+                    {% if change.notes %}<div class="text-muted small fst-italic">{{ change.notes }}</div>{% endif %}
+                    <div class="text-muted small">{{ change.changed_at[:10] }} {{ change.changed_at[11:16] }}</div>
+                </div>
+                {% else %}
+                <p class="text-muted small">No history yet.</p>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

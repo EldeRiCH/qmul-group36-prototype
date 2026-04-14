@@ -8,17 +8,27 @@
 .badge-withdrawn   { background-color: #343a40; color: #fff; }
 
 /* ── Status badges (EC applications) ── */
-.badge-submitted      { background-color: #0d6efd; color: #fff; }
-.badge-under-review   { background-color: #fd7e14; color: #fff; }
-.badge-approved       { background-color: #198754; color: #fff; }
-.badge-rejected       { background-color: #dc3545; color: #fff; }
-.badge-more-evidence  { background-color: #6f42c1; color: #fff; }
-.badge-on-hold        { background-color: #ffc107; color: #212529; }
+.badge-submitted        { background-color: #0d6efd; color: #fff; }
+.badge-under-review     { background-color: #fd7e14; color: #fff; }
+.badge-approved         { background-color: #198754; color: #fff; }
+.badge-rejected         { background-color: #dc3545; color: #fff; }
+.badge-action-required  { background-color: #e65c00; color: #fff; }
+.badge-on-hold          { background-color: #ffc107; color: #212529; }
 
-/* ── Service status bar ── */
+/* ── Service status bar (legacy — replaced by inline styles in base.html) ── */
 .service-status-bar {
     font-size: 0.82rem;
     letter-spacing: 0.01em;
+}
+
+/* ── Page section headings ── */
+.section-label {
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    font-weight: 700;
+    color: #6c757d;
+    margin-bottom: 0.75rem;
 }
 
 /* ── Card hover effect ── */
@@ -54,8 +64,8 @@
 
 /* ── Login page ── */
 .login-container {
-    max-width: 420px;
-    margin: 80px auto;
+    max-width: 560px;
+    margin: 60px auto;
 }
 .login-header {
     background-color: #003B5C;
@@ -85,6 +95,19 @@
     background-color: #f8f9fa;
     font-weight: 600;
     font-size: 0.9rem;
+}
+
+/* ── Hero cards on student dashboard ── */
+.hero-card {
+    transition: box-shadow 0.15s ease, transform 0.15s ease;
+    border-radius: 12px !important;
+}
+.hero-card:hover {
+    box-shadow: 0 6px 20px rgba(0,0,0,0.10) !important;
+    transform: translateY(-2px);
+}
+.hero-icon {
+    flex-shrink: 0;
 }
 
 /* ── Active nav link ── */

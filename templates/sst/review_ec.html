@@ -4,7 +4,7 @@
 {% block content %}
 <div class="d-flex align-items-center mb-4">
     <a href="{{ url_for('sst_dashboard') }}" class="btn btn-sm btn-outline-secondary me-3"><i class="bi bi-arrow-left"></i> Back</a>
-    <h4 class="mb-0">EC Application #{{ ec.ec_id }}</h4>
+    <h4 class="mb-0">{{ ec.ec_id | ec_ref }}</h4>
     <span class="ms-3">{% include 'partials/ec_badge.html' %}</span>
 </div>
 
@@ -17,7 +17,18 @@
             <div class="card-body">
                 <div class="row mb-2"><div class="col-sm-3 text-muted">Student</div><div class="col-sm-9">{{ ec.student_name }} ({{ ec.student_email }})</div></div>
                 <div class="row mb-2"><div class="col-sm-3 text-muted">Module</div><div class="col-sm-9">{{ ec.module_code }} — {{ ec.module_title }}</div></div>
-                <div class="row mb-2"><div class="col-sm-3 text-muted">Assessment</div><div class="col-sm-9">{{ ec.assessment_name or '—' }}</div></div>
+                <div class="row mb-2">
+                    <div class="col-sm-3 text-muted">Assessment</div>
+                    <div class="col-sm-9">
+                        {{ ec.assessment_name or '—' }}
+                        {% if ec.assessment_due %}
+                        <span class="ms-2 badge {% if ec.assessment_due < ec.created_at[:10] %}bg-danger{% else %}bg-warning text-dark{% endif %}"
+                              title="{% if ec.assessment_due < ec.created_at[:10] %}Deadline already passed when submitted{% else %}Upcoming deadline{% endif %}">
+                            <i class="bi bi-calendar-event me-1"></i>Due {{ ec.assessment_due }}
+                        </span>
+                        {% endif %}
+                    </div>
+                </div>
                 <div class="row mb-2"><div class="col-sm-3 text-muted">Year Group</div><div class="col-sm-9">{{ ec.year_group or '—' }}</div></div>
                 <div class="row mb-2"><div class="col-sm-3 text-muted">Reason</div>
                     <div class="col-sm-9"><span class="badge bg-secondary">{{ ec.reason }}</span></div>
@@ -35,19 +46,8 @@
         <div class="card mb-4">
             <div class="card-header bg-white"><h6 class="mb-0"><i class="bi bi-paperclip me-1"></i>Evidence / Attachments ({{ attachments|length }})</h6></div>
             <div class="card-body">
-                {% for att in attachments %}
-                <div class="d-flex align-items-center gap-3 mb-2">
-                    <i class="bi bi-file-earmark text-muted"></i>
-                    <span>{{ att.file_name }}</span>
-                    <span class="text-muted small">{{ att.uploaded_at[:10] }}</span>
-                    <a href="{{ url_for('download_file', attachment_id=att.attachment_id) }}"
-                       class="btn btn-sm btn-outline-secondary ms-auto">
-                        <i class="bi bi-download me-1"></i> Download
-                    </a>
-                </div>
-                {% else %}
-                <p class="text-muted mb-0">No evidence uploaded.</p>
-                {% endfor %}
+                {% for att in attachments %}{% include 'partials/attachment_row.html' %}
+                {% else %}<p class="text-muted mb-2">No evidence uploaded.</p>{% endfor %}
 
                 <form method="POST" enctype="multipart/form-data" class="mt-3 border-top pt-3">
                     <input type="hidden" name="action" value="add_file">
@@ -61,47 +61,69 @@
         </div>
 
         <!-- Decision form -->
-        <div class="card mb-4 border-primary">
-            <div class="card-header bg-white"><h6 class="mb-0"><i class="bi bi-check2-square me-1"></i>Make Decision</h6></div>
+        <div class="card mb-4" style="border: 2px solid #003B5C;">
+            <div class="card-header text-white" style="background-color:#003B5C;">
+                <h6 class="mb-0"><i class="bi bi-check2-square me-1"></i>Make Decision</h6>
+            </div>
             <div class="card-body">
                 <form method="POST">
                     <input type="hidden" name="action" value="update_status">
-                    <div class="mb-3">
-                        <label class="form-label">Decision</label>
-                        <div class="d-flex gap-3 flex-wrap">
-                            <div class="form-check">
-                                <input class="form-check-input" type="radio" name="new_status" value="Under Review" id="st-review"
-                                       {% if ec.status == 'Under Review' %}checked{% endif %}>
-                                <label class="form-check-label" for="st-review">Under Review</label>
-                            </div>
-                            <div class="form-check">
-                                <input class="form-check-input" type="radio" name="new_status" value="On Hold" id="st-hold"
-                                       {% if ec.status == 'On Hold' %}checked{% endif %}>
-                                <label class="form-check-label text-warning fw-bold" for="st-hold">On Hold</label>
-                            </div>
-                            <div class="form-check">
-                                <input class="form-check-input" type="radio" name="new_status" value="More Evidence Needed" id="st-more"
-                                       {% if ec.status == 'More Evidence Needed' %}checked{% endif %}>
-                                <label class="form-check-label text-purple" for="st-more">More Evidence Needed</label>
-                            </div>
-                            <div class="form-check">
-                                <input class="form-check-input" type="radio" name="new_status" value="Approved" id="st-approve"
-                                       {% if ec.status == 'Approved' %}checked{% endif %}>
-                                <label class="form-check-label text-success fw-bold" for="st-approve">Approve</label>
-                            </div>
-                            <div class="form-check">
-                                <input class="form-check-input" type="radio" name="new_status" value="Rejected" id="st-reject"
-                                       {% if ec.status == 'Rejected' %}checked{% endif %}>
-                                <label class="form-check-label text-danger fw-bold" for="st-reject">Reject</label>
-                            </div>
+                    <input type="hidden" name="new_status" id="selectedStatus" value="{{ ec.status }}">
+
+                    <p class="text-muted small mb-3">Select the appropriate status for this EC application:</p>
+
+                    <div class="row g-3 mb-4">
+                        <!-- Under Review -->
+                        <div class="col-6 col-md-3">
+                            <label class="status-card w-100 h-100 {% if ec.status == 'Under Review' %}selected{% endif %}" data-value="Under Review">
+                                <div class="card h-100 text-center p-3" style="cursor:pointer; border-width:2px; transition:all 0.15s;">
+                                    <div class="mb-2" style="font-size:1.8rem; color:#fd7e14;"><i class="bi bi-hourglass-split"></i></div>
+                                    <div class="fw-semibold" style="color:#fd7e14;">Under Review</div>
+                                    <div class="text-muted small mt-1">Currently being assessed</div>
+                                </div>
+                            </label>
+                        </div>
+                        <!-- Action Required -->
+                        <div class="col-6 col-md-3">
+                            <label class="status-card w-100 h-100 {% if ec.status == 'Action Required' %}selected{% endif %}" data-value="Action Required">
+                                <div class="card h-100 text-center p-3" style="cursor:pointer; border-width:2px; transition:all 0.15s;">
+                                    <div class="mb-2" style="font-size:1.8rem; color:#e65c00;"><i class="bi bi-exclamation-triangle"></i></div>
+                                    <div class="fw-semibold" style="color:#e65c00;">Action Required</div>
+                                    <div class="text-muted small mt-1">More evidence needed</div>
+                                </div>
+                            </label>
+                        </div>
+                        <!-- Approve -->
+                        <div class="col-6 col-md-3">
+                            <label class="status-card w-100 h-100 {% if ec.status == 'Approved' %}selected{% endif %}" data-value="Approved">
+                                <div class="card h-100 text-center p-3" style="cursor:pointer; border-width:2px; transition:all 0.15s;">
+                                    <div class="mb-2" style="font-size:1.8rem; color:#198754;"><i class="bi bi-check-circle"></i></div>
+                                    <div class="fw-semibold text-success">Approve</div>
+                                    <div class="text-muted small mt-1">Grant the extension</div>
+                                </div>
+                            </label>
+                        </div>
+                        <!-- Reject -->
+                        <div class="col-6 col-md-3">
+                            <label class="status-card w-100 h-100 {% if ec.status == 'Rejected' %}selected{% endif %}" data-value="Rejected">
+                                <div class="card h-100 text-center p-3" style="cursor:pointer; border-width:2px; transition:all 0.15s;">
+                                    <div class="mb-2" style="font-size:1.8rem; color:#dc3545;"><i class="bi bi-x-circle"></i></div>
+                                    <div class="fw-semibold text-danger">Reject</div>
+                                    <div class="text-muted small mt-1">Decline the application</div>
+                                </div>
+                            </label>
                         </div>
                     </div>
+
                     <div class="mb-3">
-                        <label class="form-label">Decision Notes <span class="text-muted small">(shown to student)</span></label>
+                        <label class="form-label fw-semibold">Decision Notes <span class="text-muted fw-normal small">(visible to student)</span></label>
                         <textarea name="decision_notes" class="form-control" rows="3"
-                                  placeholder="Provide a reason for the decision...">{{ ec.decision_notes or '' }}</textarea>
+                                  placeholder="Provide a clear reason for the decision...">{{ ec.decision_notes or '' }}</textarea>
                     </div>
-                    <button type="submit" class="btn btn-primary" style="background-color:#003B5C;border-color:#003B5C;">Submit Decision</button>
+                    <button type="submit" class="btn text-white fw-semibold px-4"
+                            style="background-color:#003B5C;border-color:#003B5C;">
+                        <i class="bi bi-send me-1"></i> Submit Decision
+                    </button>
                 </form>
             </div>
         </div>
@@ -166,4 +188,25 @@
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block scripts %}
+<style>
+.status-card .card { border-color: #dee2e6; }
+.status-card:hover .card { border-color: #003B5C; box-shadow: 0 2px 8px rgba(0,59,92,0.15); transform: translateY(-2px); }
+.status-card.selected .card { border-color: #003B5C !important; background-color: #f0f6fb; box-shadow: 0 0 0 3px rgba(0,59,92,0.2); }
+</style>
+<script>
+(function () {
+    const cards = document.querySelectorAll('.status-card');
+    const hidden = document.getElementById('selectedStatus');
+    cards.forEach(card => {
+        card.addEventListener('click', () => {
+            cards.forEach(c => c.classList.remove('selected'));
+            card.classList.add('selected');
+            hidden.value = card.dataset.value;
+        });
+    });
+})();
+</script>
 {% endblock %}

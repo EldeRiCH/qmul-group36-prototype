@@ -52,7 +52,7 @@
                 <tbody>
                     {% for ticket in tickets %}
                     <tr>
-                        <td><strong>#{{ ticket.ticket_id }}</strong></td>
+                        <td><span class="fw-semibold small" style="color:#003B5C;">{{ ticket.ticket_id | ticket_ref }}</span></td>
                         <td>{{ ticket.creator_name }}</td>
                         <td>{{ ticket.title }}</td>
                         <td><span class="text-muted small">{{ ticket.category_name or '—' }}</span></td>
@@ -85,7 +85,7 @@
                 <tbody>
                     {% for ec in ecs %}
                     <tr>
-                        <td><strong>#{{ ec.ec_id }}</strong></td>
+                        <td><span class="fw-semibold small" style="color:#003B5C;">{{ ec.ec_id | ec_ref }}</span></td>
                         <td>{{ ec.student_name }}</td>
                         <td>{{ ec.module_code }}</td>
                         <td class="text-muted small">{{ ec.reason }}</td>

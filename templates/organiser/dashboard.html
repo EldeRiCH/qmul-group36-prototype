@@ -13,37 +13,70 @@
 </div>
 {% endif %}
 
-<!-- Summary stats -->
+<!-- Summary stats + chart -->
 {% if ecs %}
-<div class="row g-3 mb-4">
-    {% set approved  = ecs | selectattr('status', 'equalto', 'Approved') | list | length %}
-    {% set rejected  = ecs | selectattr('status', 'equalto', 'Rejected') | list | length %}
-    {% set pending   = ecs | rejectattr('status', 'in', ['Approved', 'Rejected', 'Withdrawn']) | list | length %}
-    <div class="col-auto">
-        <div class="card px-3 py-2 text-center">
+{% set approved        = ecs | selectattr('status', 'equalto', 'Approved')       | list | length %}
+{% set rejected        = ecs | selectattr('status', 'equalto', 'Rejected')       | list | length %}
+{% set under_review    = ecs | selectattr('status', 'equalto', 'Under Review')   | list | length %}
+{% set action_required = ecs | selectattr('status', 'equalto', 'Action Required')| list | length %}
+{% set submitted       = ecs | selectattr('status', 'equalto', 'Submitted')      | list | length %}
+{% set withdrawn       = ecs | selectattr('status', 'equalto', 'Withdrawn')      | list | length %}
+
+<!-- Single-row stat strip -->
+<div class="row g-2 mb-4">
+    <div class="col">
+        <div class="card text-center py-2 px-1">
             <div class="fw-bold fs-5">{{ ecs|length }}</div>
-            <div class="text-muted small">Total</div>
+            <div class="text-muted" style="font-size:0.72rem;">Total</div>
         </div>
     </div>
-    <div class="col-auto">
-        <div class="card px-3 py-2 text-center border-success">
+    <div class="col">
+        <div class="card text-center py-2 px-1" style="border-top:3px solid #0d6efd;">
+            <div class="fw-bold fs-5 text-primary">{{ submitted }}</div>
+            <div class="text-muted" style="font-size:0.72rem;">Submitted</div>
+        </div>
+    </div>
+    <div class="col">
+        <div class="card text-center py-2 px-1" style="border-top:3px solid #fd7e14;">
+            <div class="fw-bold fs-5" style="color:#fd7e14;">{{ under_review }}</div>
+            <div class="text-muted" style="font-size:0.72rem;">Under Review</div>
+        </div>
+    </div>
+    <div class="col">
+        <div class="card text-center py-2 px-1" style="border-top:3px solid #e65c00;">
+            <div class="fw-bold fs-5" style="color:#e65c00;">{{ action_required }}</div>
+            <div class="text-muted" style="font-size:0.72rem;">Action Req.</div>
+        </div>
+    </div>
+    <div class="col">
+        <div class="card text-center py-2 px-1" style="border-top:3px solid #198754;">
             <div class="fw-bold fs-5 text-success">{{ approved }}</div>
-            <div class="text-muted small">Approved</div>
+            <div class="text-muted" style="font-size:0.72rem;">Approved</div>
         </div>
     </div>
-    <div class="col-auto">
-        <div class="card px-3 py-2 text-center border-danger">
+    <div class="col">
+        <div class="card text-center py-2 px-1" style="border-top:3px solid #dc3545;">
             <div class="fw-bold fs-5 text-danger">{{ rejected }}</div>
-            <div class="text-muted small">Rejected</div>
-        </div>
-    </div>
-    <div class="col-auto">
-        <div class="card px-3 py-2 text-center border-warning">
-            <div class="fw-bold fs-5 text-warning">{{ pending }}</div>
-            <div class="text-muted small">Pending</div>
+            <div class="text-muted" style="font-size:0.72rem;">Rejected</div>
         </div>
     </div>
 </div>
+
+<!-- Chart row — only render if there's something to show -->
+{% if ecs|length > 0 %}
+<div class="card mb-4">
+    <div class="card-body py-3">
+        <div class="row align-items-center">
+            <div class="col-auto mx-auto" style="max-width:200px; position:relative; height:180px;">
+                <canvas id="ecChart"></canvas>
+            </div>
+            <div class="col-auto">
+                <div id="chartLegend" class="small"></div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
 {% endif %}
 
 <div class="card">
@@ -65,8 +98,8 @@
                 </thead>
                 <tbody>
                     {% for ec in ecs %}
-                    <tr>
-                        <td><strong>#{{ ec.ec_id }}</strong></td>
+                    <tr style="cursor:pointer;" onclick="window.location='{{ url_for('organiser_view_ec', ec_id=ec.ec_id) }}'">
+                        <td><span class="fw-semibold small" style="color:#003B5C;">{{ ec.ec_id | ec_ref }}</span></td>
                         <td>{{ ec.student_name }}</td>
                         <td><span class="text-muted small">{{ ec.module_code }}</span></td>
                         <td class="text-muted small">{{ ec.assessment_name or '—' }}</td>
@@ -77,7 +110,7 @@
                             <span title="{{ ec.decision_notes }}">{{ ec.decision_notes[:60] }}{% if ec.decision_notes|length > 60 %}…{% endif %}</span>
                             {% else %}—{% endif %}
                         </td>
-                        <td class="text-muted small">{{ ec.decision_date[:10] if ec.decision_date else 'Pending' }}</td>
+                        <td class="text-muted small" style="white-space:nowrap;">{{ ec.decision_date[:10] if ec.decision_date else 'Pending' }}</td>
                     </tr>
                     {% endfor %}
                 </tbody>
@@ -91,4 +124,68 @@
         {% endif %}
     </div>
 </div>
+{% endblock %}
+
+{% block scripts %}
+{% if ecs %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+<script>
+(function () {
+    const data = {
+        labels:  ['Approved', 'Rejected', 'Under Review', 'Action Req.', 'Submitted', 'Withdrawn'],
+        counts:  [{{ approved }}, {{ rejected }}, {{ under_review }}, {{ action_required }}, {{ submitted }}, {{ withdrawn }}],
+        colors:  ['#198754', '#dc3545', '#fd7e14', '#e65c00', '#0d6efd', '#6c757d']
+    };
+
+    // Remove zero-value entries
+    const filtered = data.labels.reduce((acc, label, i) => {
+        if (data.counts[i] > 0) {
+            acc.labels.push(label);
+            acc.counts.push(data.counts[i]);
+            acc.colors.push(data.colors[i]);
+        }
+        return acc;
+    }, {labels:[], counts:[], colors:[]});
+
+    const ctx = document.getElementById('ecChart').getContext('2d');
+    new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+            labels:   filtered.labels,
+            datasets: [{
+                data:            filtered.counts,
+                backgroundColor: filtered.colors,
+                borderWidth:     3,
+                borderColor:     '#fff'
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            cutout: '60%',
+            plugins: {
+                legend: { display: false },
+                tooltip: { callbacks: {
+                    label: ctx => {
+                        const total = ctx.dataset.data.reduce((a,b)=>a+b,0);
+                        return ` ${ctx.label}: ${ctx.raw} (${Math.round(ctx.raw/total*100)}%)`;
+                    }
+                }}
+            },
+            animation: { animateRotate: true, duration: 700 }
+        }
+    });
+
+    // Custom legend
+    const legend = document.getElementById('chartLegend');
+    legend.innerHTML = filtered.labels.map((l, i) =>
+        `<div class="d-flex align-items-center gap-2 mb-1">
+            <span style="width:10px;height:10px;border-radius:50%;background:${filtered.colors[i]};flex-shrink:0;display:inline-block;"></span>
+            <span>${l}</span>
+            <strong class="ms-auto ps-2">${filtered.counts[i]}</strong>
+        </div>`
+    ).join('');
+})();
+</script>
+{% endif %}
 {% endblock %}

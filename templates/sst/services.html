@@ -1,38 +1,120 @@
 {% extends "base.html" %}
-{% block title %}Service Status - QMUL Issues & Feedback{% endblock %}
+{% block title %}Service Status Admin - QMUL{% endblock %}
 
 {% block content %}
-<h4 class="mb-4"><i class="bi bi-activity me-2"></i>Service Status</h4>
-<p class="text-muted mb-4">Update the status of QMUL services. Changes are reflected immediately in the status bar visible to all users.</p>
+<div class="d-flex align-items-center justify-content-between mb-4">
+    <div>
+        <h4 class="mb-0"><i class="bi bi-sliders me-2"></i>Manage Service Status</h4>
+        <p class="text-muted small mb-0">Changes are reflected immediately in the status bar visible to all users.</p>
+    </div>
+</div>
 
-<div class="card">
-    <div class="card-header bg-white"><h6 class="mb-0">Current Status</h6></div>
+{% set physical = services | selectattr('service_type', 'equalto', 'physical') | list %}
+{% set digital  = services | selectattr('service_type', 'equalto', 'digital')  | list %}
+
+<!-- Physical Locations -->
+<h6 class="text-muted text-uppercase fw-semibold mb-3" style="letter-spacing:0.08em; font-size:0.75rem;">
+    <i class="bi bi-geo-alt me-1"></i>Study Spaces &amp; Labs
+</h6>
+<div class="card mb-4">
     <div class="card-body p-0">
-        <table class="table table-hover mb-0">
+        <table class="table table-hover align-middle mb-0">
             <thead>
-                <tr><th>Service</th><th>Status</th><th>Last Updated</th><th>Change</th></tr>
+                <tr>
+                    <th style="width:40px;"></th>
+                    <th>Space / Location</th>
+                    <th style="width:200px;">Description</th>
+                    <th style="width:140px;">Current Status</th>
+                    <th style="width:130px;">Last Updated</th>
+                    <th style="width:220px;">Change Status</th>
+                </tr>
             </thead>
             <tbody>
-                {% for s in services %}
+                {% for s in physical %}
                 <tr>
-                    <td><strong>{{ s.name }}</strong></td>
                     <td>
-                        {% if s.status == 'operational' %}<span class="badge bg-success">Operational</span>
-                        {% elif s.status == 'degraded' %}<span class="badge bg-warning text-dark">Degraded</span>
-                        {% elif s.status == 'outage' %}<span class="badge bg-danger">Outage</span>
+                        {% if s.status == 'operational' %}<i class="bi bi-check-circle-fill text-success fs-5"></i>
+                        {% elif s.status == 'degraded' %}<i class="bi bi-dash-circle-fill text-warning fs-5"></i>
+                        {% elif s.status == 'outage' %}<i class="bi bi-x-circle-fill text-danger fs-5"></i>
+                        {% elif s.status == 'maintenance' %}<i class="bi bi-tools text-secondary fs-5"></i>{% endif %}
+                    </td>
+                    <td>
+                        <div class="fw-semibold">{{ s.name }}</div>
+                    </td>
+                    <td class="text-muted small lh-sm">{{ s.description or '—' }}</td>
+                    <td>
+                        {% if s.status == 'operational' %}<span class="badge bg-success">Open</span>
+                        {% elif s.status == 'degraded' %}<span class="badge bg-warning text-dark">Limited Access</span>
+                        {% elif s.status == 'outage' %}<span class="badge bg-danger">Closed</span>
                         {% elif s.status == 'maintenance' %}<span class="badge bg-secondary">Maintenance</span>{% endif %}
                     </td>
-                    <td class="text-muted small">{{ s.last_updated[:16].replace('T', ' ') }}</td>
+                    <td class="text-muted small">{{ s.last_updated[:16].replace('T',' ') if s.last_updated else '—' }}</td>
                     <td>
                         <form method="POST" class="d-flex gap-2 align-items-center">
                             <input type="hidden" name="service_id" value="{{ s.service_id }}">
                             <select name="status" class="form-select form-select-sm" style="width:auto;">
-                                <option value="operational"  {% if s.status == 'operational' %}selected{% endif %}>Operational</option>
-                                <option value="degraded"     {% if s.status == 'degraded' %}selected{% endif %}>Degraded</option>
-                                <option value="outage"       {% if s.status == 'outage' %}selected{% endif %}>Outage</option>
+                                <option value="operational"  {% if s.status == 'operational' %}selected{% endif %}>Open</option>
+                                <option value="degraded"     {% if s.status == 'degraded' %}selected{% endif %}>Limited Access</option>
+                                <option value="outage"       {% if s.status == 'outage' %}selected{% endif %}>Closed</option>
                                 <option value="maintenance"  {% if s.status == 'maintenance' %}selected{% endif %}>Maintenance</option>
                             </select>
-                            <button type="submit" class="btn btn-sm btn-outline-primary">Update</button>
+                            <button type="submit" class="btn btn-sm btn-outline-primary text-nowrap">Update</button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Digital Platforms -->
+<h6 class="text-muted text-uppercase fw-semibold mb-3" style="letter-spacing:0.08em; font-size:0.75rem;">
+    <i class="bi bi-display me-1"></i>Digital Platforms
+</h6>
+<div class="card">
+    <div class="card-body p-0">
+        <table class="table table-hover align-middle mb-0">
+            <thead>
+                <tr>
+                    <th style="width:40px;"></th>
+                    <th>Platform</th>
+                    <th style="width:200px;">Description</th>
+                    <th style="width:120px;">Current Status</th>
+                    <th style="width:130px;">Last Updated</th>
+                    <th style="width:220px;">Change Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for s in digital %}
+                <tr>
+                    <td>
+                        {% if s.status == 'operational' %}<i class="bi bi-check-circle-fill text-success fs-5"></i>
+                        {% elif s.status == 'degraded' %}<i class="bi bi-dash-circle-fill text-warning fs-5"></i>
+                        {% elif s.status == 'outage' %}<i class="bi bi-x-circle-fill text-danger fs-5"></i>
+                        {% elif s.status == 'maintenance' %}<i class="bi bi-tools text-secondary fs-5"></i>{% endif %}
+                    </td>
+                    <td>
+                        <div class="fw-semibold">{{ s.name }}</div>
+                    </td>
+                    <td class="text-muted small lh-sm">{{ s.description or '—' }}</td>
+                    <td>
+                        {% if s.status == 'operational' %}<span class="badge bg-success">Online</span>
+                        {% elif s.status == 'degraded' %}<span class="badge bg-warning text-dark">Degraded</span>
+                        {% elif s.status == 'outage' %}<span class="badge bg-danger">Down</span>
+                        {% elif s.status == 'maintenance' %}<span class="badge bg-secondary">Maintenance</span>{% endif %}
+                    </td>
+                    <td class="text-muted small">{{ s.last_updated[:16].replace('T',' ') if s.last_updated else '—' }}</td>
+                    <td>
+                        <form method="POST" class="d-flex gap-2 align-items-center">
+                            <input type="hidden" name="service_id" value="{{ s.service_id }}">
+                            <select name="status" class="form-select form-select-sm" style="width:auto;">
+                                <option value="operational"  {% if s.status == 'operational' %}selected{% endif %}>Online</option>
+                                <option value="degraded"     {% if s.status == 'degraded' %}selected{% endif %}>Degraded</option>
+                                <option value="outage"       {% if s.status == 'outage' %}selected{% endif %}>Down</option>
+                                <option value="maintenance"  {% if s.status == 'maintenance' %}selected{% endif %}>Maintenance</option>
+                            </select>
+                            <button type="submit" class="btn btn-sm btn-outline-primary text-nowrap">Update</button>
                         </form>
                     </td>
                 </tr>
