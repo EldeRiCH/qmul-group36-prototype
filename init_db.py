@@ -26,7 +26,7 @@ def init_db():
             password TEXT NOT NULL,
             name     TEXT NOT NULL,
             role     TEXT NOT NULL CHECK(role IN (
-                'student','sst_admin','its_staff','lab_technician','module_organiser'
+                'student','sst_admin','its_staff','lab_technician','module_organiser','admin'
             ))
         )
     """)
@@ -84,7 +84,6 @@ def init_db():
     """)
 
     # ── SUPPORT TICKETS ───────────────────────────────────────────────────
-    # status: Open (was New) | In Progress | Resolved | Closed | Withdrawn
     db.execute("""
         CREATE TABLE support_tickets (
             ticket_id   INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -103,9 +102,6 @@ def init_db():
     """)
 
     # ── EC APPLICATIONS ───────────────────────────────────────────────────
-    # status: Submitted | Under Review | Approved | Rejected |
-    #         More Evidence Needed | On Hold | Withdrawn
-    # is_draft: 1 = saved draft, not yet formally submitted
     db.execute("""
         CREATE TABLE ec_applications (
             ec_id          INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -131,7 +127,6 @@ def init_db():
     """)
 
     # ── ASSIGNMENTS ───────────────────────────────────────────────────────
-    # Now supports optional individual staff assignment alongside team
     db.execute("""
         CREATE TABLE assignments (
             assignment_id    INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -174,7 +169,6 @@ def init_db():
     """)
 
     # ── STATUS CHANGES ────────────────────────────────────────────────────
-    # notes: optional reason/comment recorded alongside the status change
     db.execute("""
         CREATE TABLE status_changes (
             change_id  INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -220,51 +214,44 @@ def init_db():
     db.execute("INSERT INTO categories VALUES (6,'General Enquiry',1)")
 
     # ── Users ─────────────────────────────────────────────────────────────
-    # Admins / Staff
-    db.execute("INSERT INTO users VALUES (1,'sst@qmul.ac.uk','password','Sarah Williams','sst_admin')")
-    db.execute("INSERT INTO users VALUES (2,'its@qmul.ac.uk','password','James Chen','its_staff')")
-    db.execute("INSERT INTO users VALUES (3,'its2@qmul.ac.uk','password','Olivia Harris','its_staff')")
-    db.execute("INSERT INTO users VALUES (4,'lab@qmul.ac.uk','password','Maria Garcia','lab_technician')")
-    db.execute("INSERT INTO users VALUES (5,'lab2@qmul.ac.uk','password','Tom Wright','lab_technician')")
-    db.execute("INSERT INTO users VALUES (6,'organiser@qmul.ac.uk','password','Dr. David Brown','module_organiser')")
-    db.execute("INSERT INTO users VALUES (7,'organiser2@qmul.ac.uk','password','Dr. Aisha Khan','module_organiser')")
+    db.execute("INSERT INTO users VALUES (1,'admin@qmul.ac.uk','password','System Admin','admin')")
+    db.execute("INSERT INTO users VALUES (2,'sst@qmul.ac.uk','password','Sarah Williams','sst_admin')")
+    db.execute("INSERT INTO users VALUES (3,'its@qmul.ac.uk','password','James Chen','its_staff')")
+    db.execute("INSERT INTO users VALUES (4,'its2@qmul.ac.uk','password','Olivia Harris','its_staff')")
+    db.execute("INSERT INTO users VALUES (5,'lab@qmul.ac.uk','password','Maria Garcia','lab_technician')")
+    db.execute("INSERT INTO users VALUES (6,'lab2@qmul.ac.uk','password','Tom Wright','lab_technician')")
+    db.execute("INSERT INTO users VALUES (7,'organiser@qmul.ac.uk','password','Dr. David Brown','module_organiser')")
+    db.execute("INSERT INTO users VALUES (8,'organiser2@qmul.ac.uk','password','Dr. Aisha Khan','module_organiser')")
+    db.execute("INSERT INTO users VALUES (9,'student@qmul.ac.uk','password','Alex Johnson','student')")
+    db.execute("INSERT INTO users VALUES (10,'student2@qmul.ac.uk','password','Priya Patel','student')")
+    db.execute("INSERT INTO users VALUES (11,'student3@qmul.ac.uk','password','Omar Farooq','student')")
+    db.execute("INSERT INTO users VALUES (12,'student4@qmul.ac.uk','password','Chloe Davies','student')")
+    db.execute("INSERT INTO users VALUES (13,'student5@qmul.ac.uk','password','Liam Murphy','student')")
 
-    # Students
-    db.execute("INSERT INTO users VALUES (8,'student@qmul.ac.uk','password','Alex Johnson','student')")
-    db.execute("INSERT INTO users VALUES (9,'student2@qmul.ac.uk','password','Priya Patel','student')")
-    db.execute("INSERT INTO users VALUES (10,'student3@qmul.ac.uk','password','Omar Farooq','student')")
-    db.execute("INSERT INTO users VALUES (11,'student4@qmul.ac.uk','password','Chloe Davies','student')")
-    db.execute("INSERT INTO users VALUES (12,'student5@qmul.ac.uk','password','Liam Murphy','student')")
-
-    # ── Modules (organiser_id updated to new user IDs) ────────────────────
-    db.execute("INSERT INTO modules VALUES (1,'ECS506U','Software Engineering',6)")
-    db.execute("INSERT INTO modules VALUES (2,'ECS414U','Operating Systems',6)")
-    db.execute("INSERT INTO modules VALUES (3,'ECS522U','Graphical User Interfaces',7)")
-    db.execute("INSERT INTO modules VALUES (4,'ECS518U','Embedded Systems',7)")
-    db.execute("INSERT INTO modules VALUES (5,'ECS401U','Professional Practice',6)")
-    db.execute("INSERT INTO modules VALUES (6,'ECS511U','Networks',7)")
+    # ── Modules ────────────────────────────────────────────────────────────
+    db.execute("INSERT INTO modules VALUES (1,'ECS506U','Software Engineering',7)")
+    db.execute("INSERT INTO modules VALUES (2,'ECS414U','Operating Systems',7)")
+    db.execute("INSERT INTO modules VALUES (3,'ECS522U','Graphical User Interfaces',8)")
+    db.execute("INSERT INTO modules VALUES (4,'ECS518U','Embedded Systems',8)")
+    db.execute("INSERT INTO modules VALUES (5,'ECS401U','Professional Practice',7)")
+    db.execute("INSERT INTO modules VALUES (6,'ECS511U','Networks',8)")
 
     # ── Enrollments ───────────────────────────────────────────────────────
-    # Alex (8): Software Eng, Operating Systems, Professional Practice
-    db.execute("INSERT INTO enrollments VALUES (1,8,1)")
-    db.execute("INSERT INTO enrollments VALUES (2,8,2)")
-    db.execute("INSERT INTO enrollments VALUES (3,8,5)")
-    # Priya (9): GUI, Embedded Systems, Networks
-    db.execute("INSERT INTO enrollments VALUES (4,9,3)")
-    db.execute("INSERT INTO enrollments VALUES (5,9,4)")
-    db.execute("INSERT INTO enrollments VALUES (6,9,6)")
-    # Omar (10): Software Eng, GUI, Networks
-    db.execute("INSERT INTO enrollments VALUES (7,10,1)")
-    db.execute("INSERT INTO enrollments VALUES (8,10,3)")
-    db.execute("INSERT INTO enrollments VALUES (9,10,6)")
-    # Chloe (11): Operating Systems, Embedded Systems
-    db.execute("INSERT INTO enrollments VALUES (10,11,2)")
-    db.execute("INSERT INTO enrollments VALUES (11,11,4)")
-    # Liam (12): Software Eng, Operating Systems, GUI, Embedded Systems
-    db.execute("INSERT INTO enrollments VALUES (12,12,1)")
-    db.execute("INSERT INTO enrollments VALUES (13,12,2)")
-    db.execute("INSERT INTO enrollments VALUES (14,12,3)")
-    db.execute("INSERT INTO enrollments VALUES (15,12,4)")
+    db.execute("INSERT INTO enrollments VALUES (1,9,1)")
+    db.execute("INSERT INTO enrollments VALUES (2,9,2)")
+    db.execute("INSERT INTO enrollments VALUES (3,9,5)")
+    db.execute("INSERT INTO enrollments VALUES (4,10,3)")
+    db.execute("INSERT INTO enrollments VALUES (5,10,4)")
+    db.execute("INSERT INTO enrollments VALUES (6,10,6)")
+    db.execute("INSERT INTO enrollments VALUES (7,11,1)")
+    db.execute("INSERT INTO enrollments VALUES (8,11,3)")
+    db.execute("INSERT INTO enrollments VALUES (9,11,6)")
+    db.execute("INSERT INTO enrollments VALUES (10,12,2)")
+    db.execute("INSERT INTO enrollments VALUES (11,12,4)")
+    db.execute("INSERT INTO enrollments VALUES (12,13,1)")
+    db.execute("INSERT INTO enrollments VALUES (13,13,2)")
+    db.execute("INSERT INTO enrollments VALUES (14,13,3)")
+    db.execute("INSERT INTO enrollments VALUES (15,13,4)")
 
     # ── Assessments ───────────────────────────────────────────────────────
     db.execute("INSERT INTO assessments VALUES (1,1,'Group Project','2026-04-15')")
@@ -290,103 +277,76 @@ def init_db():
     def days_ago(n):
         return (now - timedelta(days=n)).isoformat()
 
-    # ticket 1 – Open
     db.execute("""INSERT INTO support_tickets VALUES
-        (1,8,1,'Workstation not booting in ITL lab B','The workstation at row 3 seat 7 will not boot past BIOS.',
+        (1,9,1,'Workstation not booting in ITL lab B','The workstation at row 3 seat 7 will not boot past BIOS.',
          'Open',NULL,NULL,?)""",(days_ago(5),))
     db.execute("INSERT INTO assignments VALUES (1,1,'ticket',2,NULL,?,NULL)",(days_ago(5),))
-    db.execute("INSERT INTO status_changes VALUES (1,1,'ticket',NULL,'Open',8,NULL,?)",(days_ago(5),))
+    db.execute("INSERT INTO status_changes VALUES (1,1,'ticket',NULL,'Open',9,NULL,?)",(days_ago(5),))
 
-    # ticket 2 – In Progress
     db.execute("""INSERT INTO support_tickets VALUES
-        (2,9,2,'Oscilloscope faulty in EE Lab','Channel 2 on oscilloscope BK-7 shows no signal.',
+        (2,10,2,'Oscilloscope faulty in EE Lab','Channel 2 on oscilloscope BK-7 shows no signal.',
          'In Progress',NULL,NULL,?)""",(days_ago(10),))
-    db.execute("INSERT INTO assignments VALUES (2,2,'ticket',3,4,?,NULL)",(days_ago(10),))
-    db.execute("INSERT INTO status_changes VALUES (2,2,'ticket',NULL,'Open',9,NULL,?)",(days_ago(10),))
-    db.execute("INSERT INTO status_changes VALUES (3,2,'ticket','Open','In Progress',4,'Investigating the oscilloscope.',?)",(days_ago(8),))
+    db.execute("INSERT INTO assignments VALUES (2,2,'ticket',3,5,?,NULL)",(days_ago(10),))
+    db.execute("INSERT INTO status_changes VALUES (2,2,'ticket',NULL,'Open',10,NULL,?)",(days_ago(10),))
+    db.execute("INSERT INTO status_changes VALUES (3,2,'ticket','Open','In Progress',5,'Investigating.',?)",(days_ago(8),))
 
-    # ticket 3 – Resolved
     db.execute("""INSERT INTO support_tickets VALUES
-        (3,10,3,'Cannot submit coursework on QMplus','The submission portal returns a 500 error when I upload my PDF.',
+        (3,11,3,'Cannot submit coursework on QMplus','The submission portal returns a 500 error.',
          'Resolved','Server-side upload limit increased to 50 MB.',?,?)""",(days_ago(1), days_ago(3)))
-    db.execute("INSERT INTO assignments VALUES (3,3,'ticket',1,1,?,NULL)",(days_ago(4),))
-    db.execute("INSERT INTO status_changes VALUES (4,3,'ticket',NULL,'Open',10,NULL,?)",(days_ago(4),))
-    db.execute("INSERT INTO status_changes VALUES (5,3,'ticket','Open','In Progress',1,NULL,?)",(days_ago(3),))
-    db.execute("INSERT INTO status_changes VALUES (6,3,'ticket','In Progress','Resolved',1,'Upload limit increased.',?)",(days_ago(1),))
+    db.execute("INSERT INTO assignments VALUES (3,3,'ticket',1,2,?,NULL)",(days_ago(4),))
+    db.execute("INSERT INTO status_changes VALUES (4,3,'ticket',NULL,'Open',11,NULL,?)",(days_ago(4),))
+    db.execute("INSERT INTO status_changes VALUES (5,3,'ticket','Open','Resolved',2,'Upload limit increased.',?)",(days_ago(1),))
 
-    # ticket 4 – Withdrawn by student
     db.execute("""INSERT INTO support_tickets VALUES
-        (4,11,6,'Query about deadline extension','Is it possible to get a 48h extension on the networks report?',
-         'Withdrawn',NULL,NULL,?)""",(days_ago(7),))
-    db.execute("INSERT INTO assignments VALUES (4,4,'ticket',1,NULL,?,NULL)",(days_ago(7),))
-    db.execute("INSERT INTO status_changes VALUES (7,4,'ticket',NULL,'Open',11,NULL,?)",(days_ago(7),))
-    db.execute("INSERT INTO status_changes VALUES (8,4,'ticket','Open','Withdrawn',11,'Student withdrew the request.',?)",(days_ago(5),))
-
-    # ticket 5 – Open (Alex, ITS)
-    db.execute("""INSERT INTO support_tickets VALUES
-        (5,8,1,'Cannot log in to lab machines','My QMUL credentials are rejected on every ITL machine I try.',
+        (4,9,1,'Cannot log in to lab machines','My QMUL credentials are rejected on every ITL machine I try.',
          'Open',NULL,NULL,?)""",(days_ago(2),))
-    db.execute("INSERT INTO assignments VALUES (5,5,'ticket',2,NULL,?,NULL)",(days_ago(2),))
-    db.execute("INSERT INTO status_changes VALUES (9,5,'ticket',NULL,'Open',8,NULL,?)",(days_ago(2),))
+    db.execute("INSERT INTO assignments VALUES (4,4,'ticket',2,NULL,?,NULL)",(days_ago(2),))
+    db.execute("INSERT INTO status_changes VALUES (6,4,'ticket',NULL,'Open',9,NULL,?)",(days_ago(2),))
 
     # ── Sample EC Applications ────────────────────────────────────────────
-    # EC 1 – Approved (Alex)
     db.execute("""INSERT INTO ec_applications VALUES
-        (1,8,1,1,'Year 2','Medical','I was hospitalised for three days prior to the submission deadline.',
+        (1,9,1,1,'Year 2','Medical','I was hospitalised for three days prior to the submission deadline.',
          'Approved',0,'Extension of 5 days granted.',?,?)""",(days_ago(1), days_ago(12)))
-    db.execute("INSERT INTO assignments VALUES (6,1,'ec',1,NULL,?,NULL)",(days_ago(12),))
-    db.execute("INSERT INTO status_changes VALUES (10,1,'ec',NULL,'Submitted',8,NULL,?)",(days_ago(12),))
-    db.execute("INSERT INTO status_changes VALUES (11,1,'ec','Submitted','Under Review',1,NULL,?)",(days_ago(10),))
-    db.execute("INSERT INTO status_changes VALUES (12,1,'ec','Under Review','Approved',1,'Extension of 5 days granted.',?)",(days_ago(1),))
+    db.execute("INSERT INTO assignments VALUES (5,1,'ec',1,NULL,?,NULL)",(days_ago(12),))
+    db.execute("INSERT INTO status_changes VALUES (7,1,'ec',NULL,'Submitted',9,NULL,?)",(days_ago(12),))
+    db.execute("INSERT INTO status_changes VALUES (8,1,'ec','Submitted','Approved',2,'Extension granted.',?)",(days_ago(1),))
 
-    # EC 2 – Under Review (Priya)
     db.execute("""INSERT INTO ec_applications VALUES
-        (2,9,3,5,'Year 2','Personal','Family emergency on the day of the assessment.',
+        (2,10,3,5,'Year 2','Personal','Family emergency on the day of the assessment.',
          'Under Review',0,NULL,NULL,?)""",(days_ago(6),))
-    db.execute("INSERT INTO assignments VALUES (7,2,'ec',1,NULL,?,NULL)",(days_ago(6),))
-    db.execute("INSERT INTO status_changes VALUES (13,2,'ec',NULL,'Submitted',9,NULL,?)",(days_ago(6),))
-    db.execute("INSERT INTO status_changes VALUES (14,2,'ec','Submitted','Under Review',1,NULL,?)",(days_ago(4),))
+    db.execute("INSERT INTO assignments VALUES (6,2,'ec',1,NULL,?,NULL)",(days_ago(6),))
+    db.execute("INSERT INTO status_changes VALUES (9,2,'ec',NULL,'Submitted',10,NULL,?)",(days_ago(6),))
+    db.execute("INSERT INTO status_changes VALUES (10,2,'ec','Submitted','Under Review',2,NULL,?)",(days_ago(4),))
 
-    # EC 3 – More Evidence Needed (Omar)
     db.execute("""INSERT INTO ec_applications VALUES
-        (3,10,1,2,'Year 3','Mental Health','Severe anxiety prevented me from completing the exam.',
-         'More Evidence Needed',0,'Please upload a letter from your GP or counsellor.',NULL,?)""",(days_ago(9),))
-    db.execute("INSERT INTO assignments VALUES (8,3,'ec',1,NULL,?,NULL)",(days_ago(9),))
-    db.execute("INSERT INTO status_changes VALUES (15,3,'ec',NULL,'Submitted',10,NULL,?)",(days_ago(9),))
-    db.execute("INSERT INTO status_changes VALUES (16,3,'ec','Submitted','More Evidence Needed',1,'GP letter required.',?)",(days_ago(5),))
-
-    # EC 4 – On Hold (Chloe)
-    db.execute("""INSERT INTO ec_applications VALUES
-        (4,11,4,7,'Year 1','Bereavement','My grandmother passed away the week of the lab report.',
-         'On Hold',0,'Awaiting confirmation of relationship from registry.',NULL,?)""",(days_ago(14),))
-    db.execute("INSERT INTO assignments VALUES (9,4,'ec',1,NULL,?,NULL)",(days_ago(14),))
-    db.execute("INSERT INTO status_changes VALUES (17,4,'ec',NULL,'Submitted',11,NULL,?)",(days_ago(14),))
-    db.execute("INSERT INTO status_changes VALUES (18,4,'ec','Submitted','On Hold',1,'Awaiting registry confirmation.',?)",(days_ago(8),))
-
-    # EC 5 – Draft (Liam – not yet submitted)
-    db.execute("""INSERT INTO ec_applications VALUES
-        (5,12,2,3,'Year 2','Medical','I had a severe migraine during the coursework week.',
-         'Submitted',1,NULL,NULL,?)""",(days_ago(1),))
-
-    # EC 6 – Rejected (Priya)
-    db.execute("""INSERT INTO ec_applications VALUES
-        (6,9,4,8,'Year 2','Other','Forgot to prepare in time.',
-         'Rejected',0,'Insufficient grounds for EC under university policy.',?,?)""",(days_ago(3), days_ago(20)))
-    db.execute("INSERT INTO assignments VALUES (10,6,'ec',1,NULL,?,NULL)",(days_ago(20),))
-    db.execute("INSERT INTO status_changes VALUES (19,6,'ec',NULL,'Submitted',9,NULL,?)",(days_ago(20),))
-    db.execute("INSERT INTO status_changes VALUES (20,6,'ec','Submitted','Rejected',1,'Insufficient grounds.',?)",(days_ago(3),))
+        (3,11,1,2,'Year 3','Mental Health','Severe anxiety prevented me from completing the exam.',
+         'More Evidence Needed',0,'Please upload a letter from your GP.',NULL,?)""",(days_ago(9),))
+    db.execute("INSERT INTO assignments VALUES (7,3,'ec',1,NULL,?,NULL)",(days_ago(9),))
+    db.execute("INSERT INTO status_changes VALUES (11,3,'ec',NULL,'Submitted',11,NULL,?)",(days_ago(9),))
+    db.execute("INSERT INTO status_changes VALUES (12,3,'ec','Submitted','More Evidence Needed',2,'GP letter required.',?)",(days_ago(5),))
 
     # ── Comments ──────────────────────────────────────────────────────────
     db.execute(f"""INSERT INTO comments VALUES
-        (1,2,'ticket',4,'I have checked the oscilloscope and ordered a replacement probe.','public','{days_ago(7)}')""")
+        (1,2,'ticket',5,'I have checked the oscilloscope and ordered a replacement probe.','public','{days_ago(7)}')""")
     db.execute(f"""INSERT INTO comments VALUES
-        (2,1,'ec',1,'We have received your application and will review it shortly.','public','{days_ago(11)}')""")
-    db.execute(f"""INSERT INTO comments VALUES
-        (3,3,'ec',1,'Please note: only a letter from your registered GP will be accepted.','public','{days_ago(5)}')""")
+        (2,1,'ec',2,'We have received your application and will review it shortly.','public','{days_ago(11)}')""")
 
     db.commit()
     db.close()
     print("Database initialised successfully.")
+    print()
+    print("═" * 50)
+    print("  TEST ACCOUNTS FOR DEMO")
+    print("═" * 50)
+    print()
+    print("  Admin:             admin@qmul.ac.uk       / password")
+    print("  SST Admin:         sst@qmul.ac.uk         / password")
+    print("  Student:           student@qmul.ac.uk     / password")
+    print("  Student 2:         student2@qmul.ac.uk    / password")
+    print("  ITS Staff:         its@qmul.ac.uk         / password")
+    print("  Lab Technician:    lab@qmul.ac.uk         / password")
+    print("  Module Organiser:  organiser@qmul.ac.uk   / password")
+    print()
 
 
 if __name__ == '__main__':

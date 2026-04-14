@@ -38,7 +38,7 @@ def setup_database():
             email TEXT UNIQUE NOT NULL,
             password TEXT NOT NULL,
             name TEXT NOT NULL,
-            role TEXT NOT NULL CHECK(role IN ('student', 'sst_admin', 'its_staff', 'lab_technician', 'module_organiser'))
+            role TEXT NOT NULL CHECK(role IN ('student', 'sst_admin', 'its_staff', 'lab_technician', 'module_organiser', 'admin'))
         );
 
         CREATE TABLE teams (
@@ -149,6 +149,7 @@ def setup_database():
 
     # Users (one per role for demo)
     users = [
+        ('admin@qmul.ac.uk',      'password', 'System Admin',     'admin'),
         ('student@qmul.ac.uk',    'password', 'Alex Johnson',     'student'),
         ('student2@qmul.ac.uk',   'password', 'Priya Patel',      'student'),
         ('sst@qmul.ac.uk',        'password', 'Sarah Williams',   'sst_admin'),

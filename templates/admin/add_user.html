@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block title %}Add User - QMUL Issues & Feedback{% endblock %}
+
+{% block content %}
+<h4 class="mb-4"><i class="bi bi-person-plus me-2"></i>Add New User</h4>
+
+<div class="card">
+    <div class="card-body">
+        <form method="POST">
+            <div class="mb-3">
+                <label class="form-label">Full Name</label>
+                <input type="text" name="name" class="form-control" placeholder="e.g. John Smith" required>
+            </div>
+            <div class="mb-3">
+                <label class="form-label">QMUL Email</label>
+                <input type="email" name="email" class="form-control" placeholder="e.g. j.smith@qmul.ac.uk" required>
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Password</label>
+                <input type="password" name="password" class="form-control" placeholder="Set a password" required>
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Role</label>
+                <select name="role" class="form-select" required>
+                    <option value="">-- Select a role --</option>
+                    <option value="student">Student</option>
+                    <option value="sst_admin">SST Admin</option>
+                    <option value="its_staff">ITS Staff</option>
+                    <option value="lab_technician">Lab Technician</option>
+                    <option value="module_organiser">Module Organiser</option>
+                </select>
+            </div>
+            <button type="submit" class="btn btn-primary">Add User</button>
+            <a href="{{ url_for('admin_dashboard') }}" class="btn btn-outline-secondary ms-2">Cancel</a>
+        </form>
+    </div>
+</div>
+{% endblock %}

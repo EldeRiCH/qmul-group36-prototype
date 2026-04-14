@@ -169,6 +169,8 @@ def dashboard():
         return redirect(url_for('lab_dashboard'))
     elif role == 'module_organiser':
         return redirect(url_for('organiser_dashboard'))
+    elif role == 'admin':
+        return redirect(url_for('admin_dashboard'))
     else:
         flash('Your role is not recognised.', 'danger')
         return redirect(url_for('logout'))
@@ -1067,7 +1069,45 @@ def sst_services():
     services = query_db('SELECT * FROM service_status ORDER BY name')
     return render_template('sst/services.html', services=services)
 
+# ──────────────────────────────────────────────
+# ADMIN ROUTES
+# ──────────────────────────────────────────────
 
+@app.route('/admin/dashboard')
+@login_required
+@role_required('admin')
+def admin_dashboard():
+    users = query_db('SELECT * FROM users ORDER BY role, name')
+    return render_template('admin/dashboard.html', users=users)
+
+
+@app.route('/admin/add-user', methods=['GET', 'POST'])
+@login_required
+@role_required('admin')
+def admin_add_user():
+    if request.method == 'POST':
+        name = request.form.get('name', '').strip()
+        email = request.form.get('email', '').strip()
+        password = request.form.get('password', '').strip()
+        role = request.form.get('role', '').strip()
+
+        if not name or not email or not password or not role:
+            flash('Please fill in all fields.', 'danger')
+            return render_template('admin/add_user.html')
+
+        existing = query_db('SELECT * FROM users WHERE email = ?', (email,), one=True)
+        if existing:
+            flash('A user with that email already exists.', 'danger')
+            return render_template('admin/add_user.html')
+
+        execute_db(
+            'INSERT INTO users (email, password, name, role) VALUES (?, ?, ?, ?)',
+            (email, password, name, role)
+        )
+        flash(f'User {name} added successfully!', 'success')
+        return redirect(url_for('admin_dashboard'))
+
+    return render_template('admin/add_user.html')
 # ──────────────────────────────────────────────
 # RUN
 # ──────────────────────────────────────────────
