@@ -3,7 +3,6 @@
 {% elif ec.status == 'Approved' %}<span class="badge badge-approved">Approved</span>
 {% elif ec.status == 'Rejected' %}<span class="badge badge-rejected">Rejected</span>
 {% elif ec.status == 'Action Required' %}<span class="badge badge-action-required">Action Required</span>
-{% elif ec.status == 'On Hold' %}<span class="badge badge-on-hold">On Hold</span>
 {% elif ec.status == 'Withdrawn' %}<span class="badge badge-withdrawn">Withdrawn</span>
 {% else %}<span class="badge bg-secondary">{{ ec.status }}</span>
 {% endif %}

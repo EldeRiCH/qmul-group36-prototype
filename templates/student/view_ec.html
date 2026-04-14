@@ -43,7 +43,7 @@
         <div class="card mb-4">
             <div class="card-header bg-white"><h6 class="mb-0">Decision</h6></div>
             <div class="card-body">
-                <div class="alert {% if ec.status == 'Approved' %}alert-success{% elif ec.status == 'Rejected' %}alert-danger{% elif ec.status == 'On Hold' %}alert-warning{% else %}alert-info{% endif %}">
+                <div class="alert {% if ec.status == 'Approved' %}alert-success{% elif ec.status == 'Rejected' %}alert-danger{% else %}alert-info{% endif %}">
                     <strong>Outcome:</strong> {{ ec.status }}<br>
                     <strong>Notes:</strong> {{ ec.decision_notes }}
                     {% if ec.decision_date %}

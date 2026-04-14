@@ -4,8 +4,78 @@
 {% block content %}
 <h4 class="mb-4"><i class="bi bi-shield-lock me-2"></i>SST Admin Dashboard</h4>
 
+<!-- ── HERO CARDS ──────────────────────────────────────────────────────── -->
+{% set open_tickets = tickets | rejectattr('status','in',['Resolved','Closed','Withdrawn']) | list | length %}
+{% set active_ecs   = ecs | rejectattr('status','in',['Approved','Rejected','Withdrawn']) | list | length %}
+
+<div class="row g-4 mb-5">
+
+    <!-- LEFT: Support Tickets -->
+    <div class="col-md-6">
+        <div class="hero-card card border-0 shadow-sm h-100" style="border-left: 4px solid #6c757d !important;">
+            <div class="card-body d-flex flex-column p-4">
+                <div class="d-flex align-items-center gap-3 mb-3">
+                    <div class="hero-icon bg-secondary text-white rounded-3 d-flex align-items-center justify-content-center"
+                         style="width:64px;height:64px;font-size:1.8rem;flex-shrink:0;">
+                        <i class="bi bi-headset"></i>
+                    </div>
+                    <div>
+                        <h5 class="mb-0 fw-bold">Support Tickets</h5>
+                        <p class="mb-0 text-muted small">IT, lab, and submission issues</p>
+                    </div>
+                </div>
+                <div class="d-flex gap-4 mb-4">
+                    <div class="text-center">
+                        <div class="fw-bold fs-3 text-secondary">{{ tickets|length }}</div>
+                        <div class="text-muted small">Total</div>
+                    </div>
+                    <div class="text-center">
+                        <div class="fw-bold fs-3 text-warning">{{ open_tickets }}</div>
+                        <div class="text-muted small">Open</div>
+                    </div>
+                </div>
+                <a href="#tickets-section" class="btn btn-outline-secondary mt-auto fw-semibold">
+                    <i class="bi bi-ticket-detailed me-2"></i>View All Tickets
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- RIGHT: EC Applications (higher priority) -->
+    <div class="col-md-6">
+        <div class="hero-card card border-0 shadow-sm h-100" style="border-left: 4px solid #003B5C !important;">
+            <div class="card-body d-flex flex-column p-4">
+                <div class="d-flex align-items-center gap-3 mb-3">
+                    <div class="hero-icon rounded-3 d-flex align-items-center justify-content-center text-white"
+                         style="width:64px;height:64px;font-size:1.8rem;flex-shrink:0;background-color:#003B5C;">
+                        <i class="bi bi-file-earmark-medical"></i>
+                    </div>
+                    <div>
+                        <h5 class="mb-0 fw-bold">EC Applications</h5>
+                        <p class="mb-0 text-muted small">Extenuating circumstances reviews</p>
+                    </div>
+                </div>
+                <div class="d-flex gap-4 mb-4">
+                    <div class="text-center">
+                        <div class="fw-bold fs-3" style="color:#003B5C;">{{ ecs|length }}</div>
+                        <div class="text-muted small">Total</div>
+                    </div>
+                    <div class="text-center">
+                        <div class="fw-bold fs-3 text-warning">{{ active_ecs }}</div>
+                        <div class="text-muted small">Active</div>
+                    </div>
+                </div>
+                <a href="#ecs-section" class="btn mt-auto text-white fw-semibold"
+                   style="background-color:#003B5C;border-color:#003B5C;">
+                    <i class="bi bi-file-earmark-text me-2"></i>Review EC Applications
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- TICKETS SECTION -->
-<div class="card mb-4">
+<div class="card mb-4" id="tickets-section">
     <div class="card-header bg-white">
         <div class="d-flex justify-content-between align-items-start flex-wrap gap-2">
             <h6 class="mb-0"><i class="bi bi-ticket-detailed me-2"></i>All Support Tickets ({{ tickets|length }})</h6>
@@ -71,7 +141,7 @@
 </div>
 
 <!-- EC APPLICATIONS SECTION -->
-<div class="card">
+<div class="card" id="ecs-section">
     <div class="card-header bg-white">
         <h6 class="mb-0"><i class="bi bi-file-earmark-text me-2"></i>EC Applications ({{ ecs|length }})</h6>
     </div>

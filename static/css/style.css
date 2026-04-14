@@ -13,7 +13,6 @@
 .badge-approved         { background-color: #198754; color: #fff; }
 .badge-rejected         { background-color: #dc3545; color: #fff; }
 .badge-action-required  { background-color: #e65c00; color: #fff; }
-.badge-on-hold          { background-color: #ffc107; color: #212529; }
 
 /* ── Service status bar (legacy — replaced by inline styles in base.html) ── */
 .service-status-bar {
