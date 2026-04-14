@@ -108,6 +108,29 @@
             <i class="bi bi-info-circle me-1"></i>
             Module organisers have read-only access to EC applications. Decisions are made by the Student Support Team.
         </div>
+
+        <!-- Flag for SST review -->
+        {% if ec.status not in ['Approved', 'Rejected', 'Withdrawn'] %}
+        <div class="card mb-4 border-warning">
+            <div class="card-header" style="background:#fff3cd;">
+                <h6 class="mb-0"><i class="bi bi-flag me-2 text-warning"></i>Flag for SST Review</h6>
+            </div>
+            <div class="card-body">
+                <p class="text-muted small mb-3">Use this if you believe this EC requires urgent attention or if you have additional context for SST. This creates an internal note visible only to SST staff.</p>
+                <form method="POST">
+                    <input type="hidden" name="action" value="flag_sst">
+                    <div class="mb-3">
+                        <textarea name="flag_notes" class="form-control form-control-sm" rows="2"
+                                  placeholder="Optional: explain why you are flagging this application..."></textarea>
+                    </div>
+                    <button type="submit" class="btn btn-sm btn-warning text-dark fw-semibold"
+                            onclick="return confirm('Flag this EC for SST review?')">
+                        <i class="bi bi-flag-fill me-1"></i> Flag for SST Review
+                    </button>
+                </form>
+            </div>
+        </div>
+        {% endif %}
     </div>
 
     <!-- Status History -->

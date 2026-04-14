@@ -79,6 +79,19 @@
 {% endif %}
 {% endif %}
 
+<!-- Date range filter -->
+<form method="GET" class="d-flex gap-2 align-items-center mb-3 flex-wrap">
+    <label class="text-muted small mb-0">From</label>
+    <input type="date" name="from_date" class="form-control form-control-sm" style="width:160px;" value="{{ from_date }}">
+    <label class="text-muted small mb-0">To</label>
+    <input type="date" name="to_date" class="form-control form-control-sm" style="width:160px;" value="{{ to_date }}">
+    <button type="submit" class="btn btn-sm btn-primary">Filter</button>
+    {% if from_date or to_date %}
+    <a href="{{ url_for('organiser_dashboard') }}" class="btn btn-sm btn-outline-secondary">Clear</a>
+    {% endif %}
+    <span class="text-muted small ms-auto">{{ ecs|length }} application{{ 's' if ecs|length != 1 }}</span>
+</form>
+
 <div class="card">
     <div class="card-body p-0">
         {% if ecs %}

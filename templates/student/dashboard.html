@@ -3,6 +3,23 @@
 
 {% block content %}
 
+<!-- ── ACTION REQUIRED ALERT ─────────────────────────────────────────── -->
+{% set action_required_ecs = ecs | selectattr('status', 'equalto', 'Action Required') | rejectattr('is_draft', 'equalto', 1) | list %}
+{% if action_required_ecs %}
+<div class="alert alert-warning border-0 shadow-sm mb-4 d-flex align-items-start gap-3" role="alert">
+    <i class="bi bi-exclamation-triangle-fill fs-4 mt-1 flex-shrink-0" style="color:#e65c00;"></i>
+    <div>
+        <strong>Action Required on {{ action_required_ecs|length }} EC Application{{ 's' if action_required_ecs|length != 1 }}:</strong>
+        The Student Support Team needs additional information from you.
+        {% for ec in action_required_ecs %}
+        <a href="{{ url_for('student_view_ec', ec_id=ec.ec_id) }}" class="fw-semibold ms-2" style="color:#e65c00;">
+            View {{ ec.ec_id | ec_ref }} <i class="bi bi-arrow-right-short"></i>
+        </a>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+
 <!-- ── HERO CARDS ─────────────────────────────────────────────────────── -->
 {% set open_tickets = tickets | rejectattr('status','in',['Resolved','Closed','Withdrawn']) | list | length %}
 {% set active_ecs   = ecs | rejectattr('status','in',['Approved','Rejected','Withdrawn']) | rejectattr('is_draft', 'equalto', 1) | list | length %}
@@ -153,6 +170,14 @@
                 <h6 class="mb-0"><i class="bi bi-file-earmark-text me-2"></i>My EC Applications
                     <span class="badge bg-light text-dark ms-1" id="ecCount">{{ ecs|length }}</span>
                 </h6>
+                <div class="d-flex align-items-center gap-2">
+                    <label class="text-muted small mb-0">Show</label>
+                    <select class="form-select form-select-sm" style="width:70px;" onchange="initPagination('ecTable','ecPager',parseInt(this.value))">
+                        <option value="10" selected>10</option>
+                        <option value="25">25</option>
+                        <option value="50">50</option>
+                    </select>
+                </div>
             </div>
             <div class="card-body p-0">
                 {% if ecs %}
@@ -184,6 +209,8 @@
                                     <a href="{{ url_for('student_view_ec', ec_id=ec.ec_id) }}"
                                        class="btn btn-sm btn-outline-secondary">View</a>
                                     {% if ec.is_draft %}
+                                    <a href="{{ url_for('student_edit_draft', ec_id=ec.ec_id) }}"
+                                       class="btn btn-sm btn-outline-primary">Edit</a>
                                     <form method="POST" action="{{ url_for('student_submit_draft', ec_id=ec.ec_id) }}">
                                         <button class="btn btn-sm btn-primary" style="background-color:#003B5C;border-color:#003B5C;"
                                                 onclick="return confirm('Submit this draft now?')">Submit</button>
@@ -202,6 +229,7 @@
                 </div>
                 {% endif %}
             </div>
+            <div id="ecPager" class="d-flex justify-content-between align-items-center px-3 py-2 border-top" style="display:none!important;font-size:0.82rem;"></div>
         </div>
 
         <!-- Support Tickets Table -->
@@ -210,6 +238,14 @@
                 <h6 class="mb-0"><i class="bi bi-ticket-detailed me-2"></i>My Support Tickets
                     <span class="badge bg-light text-dark ms-1" id="ticketCount">{{ tickets|length }}</span>
                 </h6>
+                <div class="d-flex align-items-center gap-2">
+                    <label class="text-muted small mb-0">Show</label>
+                    <select class="form-select form-select-sm" style="width:70px;" onchange="initPagination('ticketTable','ticketPager',parseInt(this.value))">
+                        <option value="10" selected>10</option>
+                        <option value="25">25</option>
+                        <option value="50">50</option>
+                    </select>
+                </div>
             </div>
             <div class="card-body p-0">
                 {% if tickets %}
@@ -252,6 +288,7 @@
                 </div>
                 {% endif %}
             </div>
+            <div id="ticketPager" class="d-flex justify-content-between align-items-center px-3 py-2 border-top" style="display:none!important;font-size:0.82rem;"></div>
         </div>
 
     </div><!-- /col-lg-8 -->
@@ -311,5 +348,9 @@
         applyFilters();
     });
 })();
+
+// Pagination
+initPagination('ecTable',     'ecPager',     10);
+initPagination('ticketTable', 'ticketPager', 10);
 </script>
 {% endblock %}

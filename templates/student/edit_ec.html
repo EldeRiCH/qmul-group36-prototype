@@ -1,0 +1,162 @@
+{% extends "base.html" %}
+{% block title %}Edit EC Draft #{{ ec.ec_id }} - QMUL Student Portal{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="d-flex align-items-center mb-4">
+            <a href="{{ url_for('student_dashboard') }}" class="btn btn-sm btn-outline-secondary me-3">
+                <i class="bi bi-arrow-left"></i> Back
+            </a>
+            <h4 class="mb-0"><i class="bi bi-pencil-square me-2"></i>Edit EC Draft
+                <span class="badge bg-secondary ms-2 fs-6">{{ ec.ec_id | ec_ref }}</span>
+            </h4>
+        </div>
+
+        <div class="alert alert-info">
+            <i class="bi bi-info-circle me-1"></i>
+            You are editing a saved draft. Use <strong>Save Draft</strong> to keep your changes, or <strong>Submit</strong> to send the application to SST.
+        </div>
+
+        <div class="card">
+            <div class="card-body p-4">
+                <form method="POST" enctype="multipart/form-data" action="{{ url_for('student_edit_draft', ec_id=ec.ec_id) }}">
+
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label text-muted small">Year Group</label>
+                            <div>
+                                <span class="badge fs-6 fw-normal px-3 py-2" style="background-color:#003B5C;">
+                                    <i class="bi bi-mortarboard me-1"></i>{{ session.get('year_group', 'Unknown') }}
+                                </span>
+                                <div class="form-text">Automatically set from your student profile.</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="module_id" class="form-label">Module <span class="text-danger">*</span></label>
+                            <select class="form-select" id="module_id" name="module_id" required>
+                                <option value="">-- Select module --</option>
+                                {% for mod in modules %}
+                                <option value="{{ mod.module_id }}" {% if mod.module_id == ec.module_id %}selected{% endif %}>
+                                    {{ mod.module_code }} — {{ mod.title }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="assessment_id" class="form-label">Assessment <span class="text-danger">*</span></label>
+                            <select class="form-select" id="assessment_id" name="assessment_id" required>
+                                <option value="">-- Select module first --</option>
+                                {% for assess in assessments %}
+                                <option value="{{ assess.assessment_id }}" {% if assess.assessment_id == ec.assessment_id %}selected{% endif %}>
+                                    {{ assess.name }} (Due: {{ assess.due_date }})
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="reason" class="form-label">Reason <span class="text-danger">*</span></label>
+                        <select class="form-select" id="reason" name="reason" required>
+                            <option value="">-- Select reason --</option>
+                            <option value="Medical"      {% if ec.reason == 'Medical' %}selected{% endif %}>Medical</option>
+                            <option value="Bereavement"  {% if ec.reason == 'Bereavement' %}selected{% endif %}>Bereavement</option>
+                            <option value="Personal"     {% if ec.reason == 'Personal' %}selected{% endif %}>Personal / Family Emergency</option>
+                            <option value="Mental Health"{% if ec.reason == 'Mental Health' %}selected{% endif %}>Mental Health</option>
+                            <option value="Other"        {% if ec.reason == 'Other' %}selected{% endif %}>Other</option>
+                        </select>
+                    </div>
+
+                    <!-- Evidence checklist (shown dynamically by reason) -->
+                    <div id="evidenceChecklist" class="mb-3" style="display:none;">
+                        <div class="card border-0" style="background:#f0f6fb;">
+                            <div class="card-body py-2 px-3">
+                                <div class="d-flex align-items-center gap-2 mb-2">
+                                    <i class="bi bi-lightbulb-fill text-warning"></i>
+                                    <strong class="small">Suggested Evidence</strong>
+                                </div>
+                                <ul id="evidenceList" class="mb-0 small ps-3" style="line-height:2;"></ul>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="description" class="form-label">Description <span class="text-danger">*</span></label>
+                        <textarea class="form-control" id="description" name="description" rows="5" required>{{ ec.description or '' }}</textarea>
+                    </div>
+
+                    <div class="mb-4">
+                        <label for="evidence" class="form-label">Add Supporting Evidence <small class="text-muted">(optional – multiple files allowed)</small></label>
+                        <input class="form-control" type="file" id="evidence" name="evidence" multiple
+                               accept=".pdf,.png,.jpg,.jpeg,.doc,.docx">
+                        <div class="form-text">Upload medical certificates, letters, or other supporting documents. Any previously uploaded files will remain.</div>
+                    </div>
+
+                    <div class="d-flex gap-2">
+                        <button type="submit" name="submit_ec" class="btn btn-primary"
+                                style="background-color:#003B5C;border-color:#003B5C;">
+                            <i class="bi bi-send me-1"></i> Submit EC Application
+                        </button>
+                        <button type="submit" name="save_draft" value="1" class="btn btn-outline-secondary">
+                            <i class="bi bi-floppy me-1"></i> Save Draft
+                        </button>
+                        <a href="{{ url_for('student_dashboard') }}" class="btn btn-link text-secondary">Cancel</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const EVIDENCE = {
+    'Medical':      ['GP letter or sick note', 'Hospital appointment letter or discharge summary', 'Prescription or medical certificate'],
+    'Bereavement':  ['Death certificate', 'Funeral notice or order of service', 'Letter from GP or counsellor confirming impact'],
+    'Personal':     ['Police report (if applicable)', 'Letter from relevant authority or organisation', 'Supporting statement from personal tutor'],
+    'Mental Health':['Letter from counsellor, therapist, or psychiatrist', 'GP referral letter or clinical note', 'Evidence of contact with student wellbeing services'],
+    'Other':        ['Any relevant supporting document', 'Statement or letter from a third party if appropriate']
+};
+const reasonEl = document.getElementById('reason');
+function updateChecklist(val) {
+    const checklist = document.getElementById('evidenceChecklist');
+    const list = document.getElementById('evidenceList');
+    const items = EVIDENCE[val];
+    if (items) {
+        list.innerHTML = items.map(i => `<li><i class="bi bi-check2 text-success me-1"></i>${i}</li>`).join('');
+        checklist.style.display = '';
+    } else {
+        checklist.style.display = 'none';
+    }
+}
+reasonEl.addEventListener('change', function () { updateChecklist(this.value); });
+// Show on load if a reason is already selected
+updateChecklist(reasonEl.value);
+
+document.getElementById('module_id').addEventListener('change', function () {
+    const moduleId = this.value;
+    const assessSelect = document.getElementById('assessment_id');
+    assessSelect.innerHTML = '<option value="">Loading...</option>';
+    if (!moduleId) {
+        assessSelect.innerHTML = '<option value="">-- Select module first --</option>';
+        return;
+    }
+    fetch(`/api/module/${moduleId}/assessments`)
+        .then(r => r.json())
+        .then(data => {
+            assessSelect.innerHTML = '<option value="">-- Select assessment --</option>';
+            data.forEach(a => {
+                const opt = document.createElement('option');
+                opt.value = a.assessment_id;
+                opt.textContent = `${a.name} (Due: ${a.due_date || 'TBC'})`;
+                assessSelect.appendChild(opt);
+            });
+        });
+});
+</script>
+{% endblock %}

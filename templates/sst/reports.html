@@ -65,6 +65,45 @@
     </div>
 </div>
 
+<!-- Avg resolution time -->
+<div class="card mb-4">
+    <div class="card-header bg-white">
+        <h6 class="mb-0"><i class="bi bi-stopwatch me-2"></i>Average Resolution Time by Category</h6>
+    </div>
+    <div class="card-body">
+        {% if avg_resolution %}
+        <div class="table-responsive">
+            <table class="table table-sm mb-0">
+                <thead><tr><th>Category</th><th>Avg. Resolution Time</th><th>Resolved Tickets</th></tr></thead>
+                <tbody>
+                    {% for row in avg_resolution %}
+                    <tr>
+                        <td>{{ row.category or 'Uncategorised' }}</td>
+                        <td>
+                            {% if row.avg_hours %}
+                                {% if row.avg_hours < 1 %}
+                                    <span class="badge bg-success">{{ (row.avg_hours * 60)|round(0)|int }} min</span>
+                                {% elif row.avg_hours < 24 %}
+                                    <span class="badge bg-success">{{ row.avg_hours }}h</span>
+                                {% elif row.avg_hours < 168 %}
+                                    <span class="badge bg-warning text-dark">{{ (row.avg_hours / 24)|round(1) }} days</span>
+                                {% else %}
+                                    <span class="badge bg-danger">{{ (row.avg_hours / 168)|round(1) }} weeks</span>
+                                {% endif %}
+                            {% else %}—{% endif %}
+                        </td>
+                        <td class="text-muted">{{ row.resolved_count }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <p class="text-muted mb-0">No resolved tickets yet — resolution times will appear here once tickets are closed.</p>
+        {% endif %}
+    </div>
+</div>
+
 <!-- EC stats -->
 <div class="card">
     <div class="card-header bg-white"><h6 class="mb-0">EC Applications by Module and Status</h6></div>

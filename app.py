@@ -72,6 +72,32 @@ def ec_ref(ec_id):
     return f'EC-2025-{int(ec_id):04d}'
 
 
+@app.template_filter('timeago')
+def timeago_filter(dt_str):
+    """Convert ISO datetime string to a human-friendly 'X ago' string."""
+    if not dt_str:
+        return '—'
+    try:
+        dt = datetime.fromisoformat(str(dt_str)[:19])
+        diff = datetime.now() - dt
+        s = int(diff.total_seconds())
+        if s < 60:
+            return 'just now'
+        elif s < 3600:
+            m = s // 60
+            return f'{m}m ago'
+        elif s < 86400:
+            h = s // 3600
+            return f'{h}h ago'
+        elif s < 7 * 86400:
+            d = s // 86400
+            return f'{d} day{"s" if d != 1 else ""} ago'
+        else:
+            return dt.strftime('%d %b %Y')
+    except Exception:
+        return str(dt_str)[:10]
+
+
 # ──────────────────────────────────────────────
 # AUTH DECORATORS
 # ──────────────────────────────────────────────
@@ -469,6 +495,82 @@ def student_submit_draft(ec_id):
     return redirect(url_for('student_dashboard'))
 
 
+@app.route('/student/ec/<int:ec_id>/edit', methods=['GET', 'POST'])
+@login_required
+@role_required('student')
+def student_edit_draft(ec_id):
+    """Edit a saved EC draft before submitting."""
+    uid = session['user_id']
+    ec = query_db(
+        'SELECT ec.*, m.module_code FROM ec_applications ec '
+        'LEFT JOIN modules m ON ec.module_id = m.module_id '
+        'WHERE ec.ec_id = ? AND ec.student_id = ? AND ec.is_draft = 1',
+        (ec_id, uid), one=True
+    )
+    if not ec:
+        flash('Draft not found or already submitted.', 'danger')
+        return redirect(url_for('student_dashboard'))
+
+    modules = query_db(
+        'SELECT m.* FROM modules m '
+        'JOIN enrollments e ON m.module_id = e.module_id '
+        'WHERE e.student_id = ? ORDER BY m.module_code',
+        (uid,)
+    )
+    assessments = query_db('SELECT * FROM assessments WHERE module_id = ?', (ec['module_id'],))
+
+    if request.method == 'POST':
+        module_id     = request.form.get('module_id')
+        assessment_id = request.form.get('assessment_id')
+        reason        = request.form.get('reason', '').strip()
+        description   = request.form.get('description', '').strip()
+        is_draft      = 1 if request.form.get('save_draft') else 0
+
+        if not module_id or not assessment_id or not reason or not description:
+            flash('Please fill in all required fields.', 'danger')
+            return render_template('student/edit_ec.html', ec=ec, modules=modules, assessments=assessments)
+
+        execute_db(
+            'UPDATE ec_applications SET module_id = ?, assessment_id = ?, reason = ?, description = ?, is_draft = ? '
+            'WHERE ec_id = ?',
+            (module_id, assessment_id, reason, description, is_draft, ec_id)
+        )
+
+        # Handle additional file uploads
+        files = request.files.getlist('evidence')
+        for file in files:
+            if file and file.filename and allowed_file(file.filename):
+                filename = secure_filename(f"ec_{ec_id}_{file.filename}")
+                file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
+                execute_db(
+                    'INSERT INTO attachments (case_id, case_type, file_name, file_path, uploaded_at) '
+                    'VALUES (?, ?, ?, ?, ?)',
+                    (ec_id, 'ec', file.filename, filename, datetime.now().isoformat())
+                )
+
+        if not is_draft:
+            sst_team = query_db("SELECT team_id FROM teams WHERE team_type = 'SST'", one=True)
+            if sst_team:
+                existing = query_db("SELECT * FROM assignments WHERE case_id = ? AND case_type = 'ec'", (ec_id,), one=True)
+                if not existing:
+                    execute_db(
+                        'INSERT INTO assignments (case_id, case_type, team_id, assigned_at) VALUES (?, ?, ?, ?)',
+                        (ec_id, 'ec', sst_team['team_id'], datetime.now().isoformat())
+                    )
+            execute_db(
+                'INSERT INTO status_changes (case_id, case_type, old_status, new_status, changed_by, changed_at) '
+                'VALUES (?, ?, ?, ?, ?, ?)',
+                (ec_id, 'ec', None, 'Submitted', uid, datetime.now().isoformat())
+            )
+            flash('EC Application submitted successfully!', 'success')
+        else:
+            flash('Draft saved.', 'success')
+
+        return redirect(url_for('student_dashboard'))
+
+    return render_template('student/edit_ec.html', ec=ec, modules=modules, assessments=assessments)
+
+
 @app.route('/student/ec/<int:ec_id>/withdraw', methods=['POST'])
 @login_required
 @role_required('student')
@@ -582,9 +684,11 @@ def api_module_assessments(module_id):
 @login_required
 @role_required('sst_admin')
 def sst_dashboard():
-    status_filter   = request.args.get('status', '')
-    category_filter = request.args.get('category', '')
-    search_query    = request.args.get('search', '').strip()
+    status_filter    = request.args.get('status', '')
+    category_filter  = request.args.get('category', '')
+    search_query     = request.args.get('search', '').strip()
+    ec_status_filter = request.args.get('ec_status', '')
+    ec_search_query  = request.args.get('ec_search', '').strip()
 
     # SST only sees tickets assigned to the SST team (ITS and Lab handle their own)
     ticket_query = (
@@ -610,20 +714,31 @@ def sst_dashboard():
     ticket_query += ' ORDER BY t.created_at DESC'
 
     tickets    = query_db(ticket_query, args)
-    ecs        = query_db(
+    ec_query = (
         'SELECT ec.*, m.module_code, m.title as module_title, u.name as student_name '
         'FROM ec_applications ec '
         'LEFT JOIN modules m ON ec.module_id = m.module_id '
         'LEFT JOIN users u ON ec.student_id = u.user_id '
-        'WHERE ec.is_draft = 0 '
-        'ORDER BY ec.created_at DESC'
+        'WHERE ec.is_draft = 0'
     )
+    ec_args = []
+    if ec_status_filter:
+        ec_query += ' AND ec.status = ?'
+        ec_args.append(ec_status_filter)
+    if ec_search_query:
+        ec_query += ' AND (u.name LIKE ? OR m.module_code LIKE ? OR CAST(ec.ec_id AS TEXT) LIKE ?)'
+        like = f'%{ec_search_query}%'
+        ec_args.extend([like, like, like])
+    ec_query += ' ORDER BY ec.created_at DESC'
+
+    ecs        = query_db(ec_query, ec_args)
     categories = query_db('SELECT * FROM categories')
 
     return render_template('sst/dashboard.html',
                            tickets=tickets, ecs=ecs, categories=categories,
                            status_filter=status_filter, category_filter=category_filter,
-                           search_query=search_query)
+                           search_query=search_query,
+                           ec_status_filter=ec_status_filter, ec_search_query=ec_search_query)
 
 
 @app.route('/sst/ticket/<int:ticket_id>', methods=['GET', 'POST'])
@@ -654,7 +769,7 @@ def sst_manage_ticket(ticket_id):
                     (ticket_id, 'ticket', old_ticket['status'], new_status,
                      session['user_id'], notes or None, datetime.now().isoformat())
                 )
-                flash(f'Status updated to {new_status}.', 'success')
+                flash(f'Status updated to {new_status}. The student will be notified.', 'success')
 
         elif action == 'add_comment':
             content    = request.form.get('comment', '').strip()
@@ -781,7 +896,7 @@ def sst_review_ec(ec_id):
                 (ec_id, 'ec', old_ec['status'], new_status, session['user_id'],
                  decision_notes or None, datetime.now().isoformat())
             )
-            flash(f'EC status updated to {new_status}.', 'success')
+            flash(f'EC status updated to {new_status}. The student will be notified.', 'success')
 
         elif action == 'add_comment':
             content    = request.form.get('comment', '').strip()
@@ -867,10 +982,22 @@ def sst_reports():
     resolved_tickets = query_db("SELECT COUNT(*) as n FROM support_tickets WHERE status IN ('Resolved','Closed')", one=True)['n']
     total_ecs        = query_db('SELECT COUNT(*) as n FROM ec_applications WHERE is_draft = 0', one=True)['n']
 
+    # Average resolution time per category (tickets resolved/closed with a resolved_at timestamp)
+    avg_resolution = query_db(
+        "SELECT c.name as category, "
+        "ROUND(AVG((julianday(t.resolved_at) - julianday(t.created_at)) * 24), 1) as avg_hours, "
+        "COUNT(*) as resolved_count "
+        "FROM support_tickets t "
+        "LEFT JOIN categories c ON t.category_id = c.category_id "
+        "WHERE t.resolved_at IS NOT NULL AND t.status IN ('Resolved', 'Closed') "
+        "GROUP BY t.category_id ORDER BY avg_hours"
+    )
+
     return render_template('sst/reports.html',
                            ticket_stats=ticket_stats, ec_stats=ec_stats,
                            total_tickets=total_tickets, open_tickets=open_tickets,
-                           resolved_tickets=resolved_tickets, total_ecs=total_ecs)
+                           resolved_tickets=resolved_tickets, total_ecs=total_ecs,
+                           avg_resolution=avg_resolution)
 
 
 # ──────────────────────────────────────────────
@@ -938,7 +1065,7 @@ def its_manage_ticket(ticket_id):
                     (ticket_id, 'ticket', old_ticket['status'], new_status,
                      session['user_id'], notes or None, datetime.now().isoformat())
                 )
-                flash(f'Status updated to {new_status}.', 'success')
+                flash(f'Status updated to {new_status}. The student will be notified.', 'success')
 
         elif action == 'add_comment':
             content = request.form.get('comment', '').strip()
@@ -1041,7 +1168,7 @@ def lab_manage_ticket(ticket_id):
                     (ticket_id, 'ticket', old_ticket['status'], new_status,
                      session['user_id'], notes or None, datetime.now().isoformat())
                 )
-                flash(f'Status updated to {new_status}.', 'success')
+                flash(f'Status updated to {new_status}. The student will be notified.', 'success')
 
         elif action == 'add_comment':
             content = request.form.get('comment', '').strip()
@@ -1090,10 +1217,20 @@ def lab_manage_ticket(ticket_id):
 def organiser_dashboard():
     organiser_modules = query_db('SELECT * FROM modules WHERE organiser_id = ?', (session['user_id'],))
     module_ids        = [m['module_id'] for m in organiser_modules]
+    from_date = request.args.get('from_date', '')
+    to_date   = request.args.get('to_date', '')
 
     ecs = []
     if module_ids:
         placeholders = ','.join('?' * len(module_ids))
+        extra_where = ''
+        extra_args  = list(module_ids)
+        if from_date:
+            extra_where += ' AND ec.created_at >= ?'
+            extra_args.append(from_date)
+        if to_date:
+            extra_where += ' AND ec.created_at <= ?'
+            extra_args.append(to_date + ' 23:59:59')
         ecs = query_db(
             f'SELECT ec.*, m.module_code, m.title as module_title, '
             f'u.name as student_name, a.name as assessment_name '
@@ -1101,19 +1238,33 @@ def organiser_dashboard():
             f'LEFT JOIN modules m ON ec.module_id = m.module_id '
             f'LEFT JOIN users u ON ec.student_id = u.user_id '
             f'LEFT JOIN assessments a ON ec.assessment_id = a.assessment_id '
-            f'WHERE ec.module_id IN ({placeholders}) AND ec.is_draft = 0 '
+            f'WHERE ec.module_id IN ({placeholders}) AND ec.is_draft = 0{extra_where} '
             f'ORDER BY ec.created_at DESC',
-            module_ids
+            extra_args
         )
 
-    return render_template('organiser/dashboard.html', ecs=ecs, modules=organiser_modules)
+    return render_template('organiser/dashboard.html', ecs=ecs, modules=organiser_modules,
+                           from_date=from_date, to_date=to_date)
 
 
-@app.route('/organiser/ec/<int:ec_id>')
+@app.route('/organiser/ec/<int:ec_id>', methods=['GET', 'POST'])
 @login_required
 @role_required('module_organiser')
 def organiser_view_ec(ec_id):
-    """Read-only EC detail view for module organisers."""
+    """EC detail view for module organisers — read-only with flag action."""
+    if request.method == 'POST':
+        action = request.form.get('action')
+        if action == 'flag_sst':
+            notes = request.form.get('flag_notes', '').strip()
+            content = f'[Flagged by Module Organiser] {notes}' if notes else '[Flagged by Module Organiser for SST review]'
+            execute_db(
+                'INSERT INTO comments (case_id, case_type, author_id, content, visibility, created_at) '
+                'VALUES (?, ?, ?, ?, ?, ?)',
+                (ec_id, 'ec', session['user_id'], content, 'internal', datetime.now().isoformat())
+            )
+            flash('EC flagged for SST review. The Student Support Team will be notified.', 'success')
+            return redirect(url_for('organiser_view_ec', ec_id=ec_id))
+
     ec = query_db(
         'SELECT ec.*, m.module_code, m.title as module_title, '
         'a.name as assessment_name, a.due_date as assessment_due, '

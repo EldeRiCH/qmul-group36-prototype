@@ -266,6 +266,94 @@
     </footer>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+    <!-- ── Shared pagination utility ── -->
+    <script>
+    /**
+     * initPagination(tableId, pagerId, perPage)
+     * Adds prev/next controls under any table.
+     * Re-run with a new perPage value to change page size.
+     */
+    function initPagination(tableId, pagerId, perPage) {
+        perPage = perPage || 10;
+        const table  = document.getElementById(tableId);
+        const pager  = document.getElementById(pagerId);
+        if (!table || !pager) return;
+
+        const allRows = Array.from(table.querySelectorAll('tbody tr'));
+        let currentPage = 1;
+
+        function visibleRows() {
+            return allRows.filter(r => r.style.display !== 'none');
+        }
+
+        function render() {
+            const rows  = visibleRows();
+            const total = rows.length;
+            const pages = Math.ceil(total / perPage) || 1;
+            currentPage = Math.min(currentPage, pages);
+            const start = (currentPage - 1) * perPage;
+            const end   = start + perPage;
+
+            rows.forEach((r, i) => {
+                r.setAttribute('data-pg-hidden', i < start || i >= end ? '1' : '0');
+                r.style.display = (i < start || i >= end) ? 'none' : '';
+            });
+            // Restore rows that were visible before but should be hidden now
+            allRows.forEach(r => {
+                if (r.getAttribute('data-pg-hidden') === '1') r.style.display = 'none';
+            });
+
+            if (total <= perPage) {
+                pager.style.setProperty('display', 'none', 'important');
+                return;
+            }
+            pager.style.removeProperty('display');
+
+            pager.innerHTML = `
+                <span class="text-muted">Showing ${start + 1}–${Math.min(end, total)} of ${total}</span>
+                <div class="d-flex gap-1">
+                    <button class="btn btn-sm btn-outline-secondary" id="${pagerId}-prev"
+                            ${currentPage === 1 ? 'disabled' : ''}>
+                        <i class="bi bi-chevron-left"></i>
+                    </button>
+                    <span class="btn btn-sm btn-light disabled px-3">${currentPage} / ${pages}</span>
+                    <button class="btn btn-sm btn-outline-secondary" id="${pagerId}-next"
+                            ${currentPage === pages ? 'disabled' : ''}>
+                        <i class="bi bi-chevron-right"></i>
+                    </button>
+                </div>`;
+
+            document.getElementById(pagerId + '-prev').addEventListener('click', () => {
+                if (currentPage > 1) { currentPage--; render(); }
+            });
+            document.getElementById(pagerId + '-next').addEventListener('click', () => {
+                if (currentPage < pages) { currentPage++; render(); }
+            });
+        }
+
+        // Re-render when external filters hide/show rows (MutationObserver)
+        const tbody = table.querySelector('tbody');
+        if (tbody) {
+            new MutationObserver(() => { currentPage = 1; render(); })
+                .observe(tbody, { attributes: true, subtree: true, attributeFilter: ['style'] });
+        }
+
+        render();
+        // Expose reset for external code
+        table._pgReset = () => { currentPage = 1; render(); };
+    }
+
+    document.addEventListener('DOMContentLoaded', function () {
+        // Auto-init any table with data-paginate attribute
+        document.querySelectorAll('table[data-paginate]').forEach(t => {
+            const pagerId = t.id + 'Pager';
+            const perPage = parseInt(t.dataset.paginate) || 10;
+            initPagination(t.id, pagerId, perPage);
+        });
+    });
+    </script>
+
     {% block scripts %}{% endblock %}
 </body>
 </html>
