@@ -9,74 +9,52 @@
     </a>
 </div>
 
-<!-- ── ROLE ICON CARDS ─────────────────────────────────────────────────── -->
-{% set role_cards = [
-    ('student',          'Students',     'bi-mortarboard-fill', '#198754', 'bg-success'),
-    ('sst_admin',        'SST Admin',    'bi-headset',          '#0d6efd', 'bg-primary'),
-    ('its_staff',        'ITS Staff',    'bi-pc-display',       '#0dcaf0', 'bg-info'),
-    ('lab_technician',   'Lab Tech',     'bi-cpu-fill',         '#fd7e14', 'bg-warning'),
-    ('module_organiser', 'Organisers',   'bi-journal-text',     '#6c757d', 'bg-secondary'),
-    ('admin',            'Admins',       'bi-shield-lock-fill', '#212529', 'bg-dark'),
+<!-- ── FILTER TOOLBAR ──────────────────────────────────────────────────── -->
+{% set role_meta = [
+    ('student',          'Students',   'bi-mortarboard-fill', '#198754'),
+    ('sst_admin',        'SST',        'bi-headset',          '#0d6efd'),
+    ('its_staff',        'ITS',        'bi-pc-display',       '#0dcaf0'),
+    ('lab_technician',   'Lab',        'bi-cpu-fill',         '#fd7e14'),
+    ('module_organiser', 'Organisers', 'bi-journal-text',     '#6c757d'),
+    ('admin',            'Admins',     'bi-shield-lock-fill', '#212529'),
 ] %}
 
-<div class="row g-4 mb-5">
-    {% for role_val, label, icon, color, badge_cls in role_cards %}
-    {% set cnt = users | selectattr('role','equalto', role_val) | list | length %}
-    <div class="col-sm-6 col-lg-4 col-xl-2">
-        <div class="card border-0 shadow-sm h-100 role-icon-card" data-role="{{ role_val }}"
-             style="border-left: 4px solid {{ color }} !important; cursor:pointer; transition: transform 0.15s, box-shadow 0.15s;">
-            <div class="card-body text-center p-4">
-                <div class="d-flex align-items-center justify-content-center rounded-3 mx-auto mb-3 text-white"
-                     style="width:64px;height:64px;font-size:1.8rem;background:{{ color }};">
-                    <i class="bi {{ icon }}"></i>
-                </div>
-                <h6 class="fw-bold mb-1">{{ label }}</h6>
-                <div class="fw-bold fs-3" style="color:{{ color }};">{{ cnt }}</div>
-                <div class="text-muted small">user{{ 's' if cnt != 1 }}</div>
+<div class="card shadow-sm mb-3" style="border:none;">
+    <div class="card-body py-3 px-4">
+        <div class="d-flex flex-wrap align-items-center gap-2 justify-content-between">
+
+            <!-- Role chips -->
+            <div class="d-flex flex-wrap align-items-center gap-2" id="roleTabs">
+                <button class="role-chip active-chip" data-role="all">
+                    <i class="bi bi-people-fill me-1"></i>All
+                    <span class="chip-count" id="cnt-all">{{ users|length }}</span>
+                </button>
+                {% for role_val, label, icon, color in role_meta %}
+                {% set cnt = users | selectattr('role','equalto', role_val) | list | length %}
+                <button class="role-chip" data-role="{{ role_val }}"
+                        data-color="{{ color }}" style="--chip-color:{{ color }};">
+                    <i class="bi {{ icon }} me-1"></i>{{ label }}
+                    <span class="chip-count" id="cnt-{{ role_val }}">{{ cnt }}</span>
+                </button>
+                {% endfor %}
+            </div>
+
+            <!-- Search -->
+            <div class="input-group input-group-sm" style="max-width:240px;">
+                <span class="input-group-text" style="background:#f8f9fa;border-right:none;">
+                    <i class="bi bi-search text-muted" style="font-size:0.8rem;"></i>
+                </span>
+                <input type="text" id="userSearch" class="form-control"
+                       style="border-left:none;background:#f8f9fa;"
+                       placeholder="Name, email or ID…">
             </div>
         </div>
-    </div>
-    {% endfor %}
-</div>
 
-<!-- Role filter tabs + search bar -->
-<div class="card mb-3">
-    <div class="card-body py-2 px-3 d-flex flex-wrap align-items-center gap-2 justify-content-between">
-        <!-- Role tabs -->
-        <div class="d-flex flex-wrap gap-1" id="roleTabs">
-            <button class="btn btn-sm active-role-btn" data-role="all"
-                    style="background:#003B5C;color:#fff;border:none;border-radius:6px;">
-                All <span class="badge bg-white text-dark ms-1" id="cnt-all">{{ users|length }}</span>
-            </button>
-            {% set role_meta = [
-                ('student',          'Students',          'bg-success'),
-                ('sst_admin',        'SST Admin',         'bg-primary'),
-                ('its_staff',        'ITS Staff',         'bg-info text-dark'),
-                ('lab_technician',   'Lab Tech',          'bg-warning text-dark'),
-                ('module_organiser', 'Organiser',         'bg-secondary'),
-                ('admin',            'System Admin',      'bg-dark'),
-            ] %}
-            {% for role_val, label, badge_cls in role_meta %}
-            {% set cnt = users | selectattr('role','equalto', role_val) | list | length %}
-            <button class="btn btn-sm btn-outline-secondary role-filter-btn"
-                    data-role="{{ role_val }}" style="border-radius:6px;">
-                {{ label }}
-                <span class="badge {{ badge_cls }} ms-1" style="font-size:0.65rem;" id="cnt-{{ role_val }}">{{ cnt }}</span>
-            </button>
-            {% endfor %}
-        </div>
-        <!-- Search -->
-        <div class="input-group input-group-sm" style="max-width:260px;">
-            <span class="input-group-text bg-white"><i class="bi bi-search text-muted"></i></span>
-            <input type="text" id="userSearch" class="form-control border-start-0"
-                   placeholder="Search name, email or ID…">
+        <!-- Result label -->
+        <div class="mt-2" style="font-size:0.78rem;color:#6c757d;" id="filterLabel">
+            Showing all <strong id="visibleCount">{{ users|length }}</strong> users
         </div>
     </div>
-</div>
-
-<!-- Active filter label -->
-<div class="mb-2 small text-muted" id="filterLabel">
-    Showing all <strong id="visibleCount">{{ users|length }}</strong> users
 </div>
 
 <!-- User table -->
@@ -143,13 +121,59 @@
 
 {% block scripts %}
 <style>
-.role-icon-card:hover {
-    transform: translateY(-4px);
-    box-shadow: 0 6px 20px rgba(0,0,0,0.12) !important;
+/* ── Role chips ────────────────────────────────────────────────────────── */
+.role-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 5px 12px;
+    border-radius: 20px;
+    border: 1.5px solid #dee2e6;
+    background: #fff;
+    color: #495057;
+    font-size: 0.8rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s, color 0.15s, box-shadow 0.15s;
+    white-space: nowrap;
+    line-height: 1;
 }
-.role-icon-card.active-card {
-    box-shadow: 0 0 0 3px #003B5C40 !important;
-    transform: translateY(-2px);
+.role-chip:hover {
+    background: #f1f3f5;
+    border-color: #adb5bd;
+}
+.role-chip .chip-count {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 18px;
+    height: 18px;
+    padding: 0 5px;
+    border-radius: 10px;
+    background: #e9ecef;
+    color: #495057;
+    font-size: 0.7rem;
+    font-weight: 700;
+    margin-left: 2px;
+    transition: background 0.15s, color 0.15s;
+}
+
+/* All chip — uses navy */
+.role-chip.active-chip {
+    background: #003B5C;
+    border-color: #003B5C;
+    color: #fff;
+    box-shadow: 0 2px 8px rgba(0,59,92,0.25);
+}
+.role-chip.active-chip .chip-count {
+    background: rgba(255,255,255,0.25);
+    color: #fff;
+}
+
+/* Role-specific active chips use their own colour */
+.role-chip.active-chip[data-color] {
+    background: var(--chip-color);
+    border-color: var(--chip-color);
 }
 </style>
 <script>
@@ -159,83 +183,47 @@
     const filterLabel = document.getElementById('filterLabel');
     const visibleCount= document.getElementById('visibleCount');
     const emptyState  = document.getElementById('emptyState');
-    const roleBtns    = document.querySelectorAll('.role-filter-btn, .active-role-btn');
-    const iconCards   = document.querySelectorAll('.role-icon-card');
+    const chips       = document.querySelectorAll('.role-chip');
 
     let activeRole = 'all';
     let searchTerm = '';
 
-    // Style constants
-    const activeStyle  = 'background:#003B5C;color:#fff;border:none;border-radius:6px;';
-    const defaultStyle = 'border-radius:6px;';
-
     function setActiveRole(role) {
         activeRole = role;
-
-        // Update tab button styles
-        roleBtns.forEach(function (b) {
-            b.style.cssText = defaultStyle;
-            b.classList.remove('btn-outline-secondary');
-            b.classList.add('btn-outline-secondary');
-        });
-        const activeBtn = document.querySelector(`[data-role="${role}"].active-role-btn, [data-role="${role}"].role-filter-btn`);
-        if (activeBtn) {
-            activeBtn.style.cssText = activeStyle;
-            activeBtn.classList.remove('btn-outline-secondary');
-        }
-
-        // Update icon card highlights
-        iconCards.forEach(function (card) {
-            card.classList.toggle('active-card', card.dataset.role === role);
-        });
-
+        chips.forEach(function (c) { c.classList.toggle('active-chip', c.dataset.role === role); });
         applyFilters();
     }
 
     function applyFilters() {
         let count = 0;
         rows.forEach(function (row) {
-            const roleMatch   = (activeRole === 'all') || (row.dataset.role === activeRole);
-            const searchMatch = (row.dataset.search || '').toLowerCase().includes(searchTerm);
-            const show = roleMatch && searchMatch;
+            const show = ((activeRole === 'all') || (row.dataset.role === activeRole))
+                      && (row.dataset.search || '').toLowerCase().includes(searchTerm);
             row.style.display = show ? '' : 'none';
             if (show) count++;
         });
 
         visibleCount.textContent = count;
 
-        // Update label
-        const roleLabel = activeRole === 'all' ? 'all roles' : activeRole.replace(/_/g, ' ');
-        filterLabel.innerHTML = `Showing <strong>${count}</strong> user${count !== 1 ? 's' : ''}` +
-            (activeRole !== 'all' ? ` &mdash; <span class="text-capitalize">${roleLabel}</span>` : '') +
-            (searchTerm ? ` matching "<em>${searchTerm}</em>"` : '');
+        const roleLabel = activeRole === 'all' ? null : activeRole.replace(/_/g, ' ');
+        filterLabel.innerHTML = `Showing <strong>${count}</strong> user${count !== 1 ? 's' : ''}`
+            + (roleLabel ? ` &mdash; <span class="text-capitalize">${roleLabel}</span>` : '')
+            + (searchTerm ? ` matching "<em>${searchTerm}</em>"` : '');
 
         emptyState.style.display = count === 0 ? '' : 'none';
     }
 
-    // Role tab clicks
-    roleBtns.forEach(function (btn) {
-        btn.addEventListener('click', function () {
-            setActiveRole(this.dataset.role);
+    chips.forEach(function (chip) {
+        chip.addEventListener('click', function () {
+            setActiveRole(activeRole === this.dataset.role ? 'all' : this.dataset.role);
         });
     });
 
-    // Icon card clicks
-    iconCards.forEach(function (card) {
-        card.addEventListener('click', function () {
-            const role = this.dataset.role;
-            // Toggle: if already active, go back to "all"
-            setActiveRole(activeRole === role ? 'all' : role);
-        });
-    });
-
-    // Search input
     searchInput.addEventListener('input', function () {
         searchTerm = this.value.toLowerCase().trim();
         applyFilters();
     });
 
-    // Initialise
     applyFilters();
 })();
 </script>
