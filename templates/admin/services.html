@@ -1,0 +1,202 @@
+{% extends "base.html" %}
+{% block title %}Admin — Service Management{% endblock %}
+
+{% block content %}
+<div class="d-flex align-items-center justify-content-between mb-4">
+    <div>
+        <h4 class="mb-0"><i class="bi bi-sliders me-2"></i>Service Management</h4>
+        <p class="text-muted small mb-0">Approve team suggestions or update service statuses directly.</p>
+    </div>
+    {% if pending_count > 0 %}
+    <span class="badge bg-warning text-dark fs-6">{{ pending_count }} pending suggestion{{ 's' if pending_count != 1 }}</span>
+    {% endif %}
+</div>
+
+<!-- Pending suggestions -->
+{% set pending_list = suggestions | selectattr('status','equalto','pending') | list %}
+{% if pending_list %}
+<h6 class="text-uppercase text-muted fw-semibold mb-3" style="letter-spacing:0.08em;font-size:0.75rem;">
+    <i class="bi bi-hourglass-split me-1 text-warning"></i>Pending Suggestions ({{ pending_list|length }})
+</h6>
+<div class="card mb-5 border-warning">
+    <div class="card-body p-0">
+        <table class="table table-hover align-middle mb-0">
+            <thead>
+                <tr><th>Service</th><th>Suggested Status</th><th>By</th><th>Notes</th><th>Submitted</th><th style="width:260px;">Action</th></tr>
+            </thead>
+            <tbody>
+                {% for s in pending_list %}
+                <tr>
+                    <td class="fw-semibold">{{ s.service_name }}</td>
+                    <td>
+                        {% if s.suggested_status == 'operational' %}<span class="badge bg-success">Operational</span>
+                        {% elif s.suggested_status == 'degraded' %}<span class="badge bg-warning text-dark">Degraded</span>
+                        {% elif s.suggested_status == 'outage' %}<span class="badge bg-danger">Outage</span>
+                        {% elif s.suggested_status == 'maintenance' %}<span class="badge bg-secondary">Maintenance</span>{% endif %}
+                    </td>
+                    <td class="small">{{ s.suggested_by_name }}
+                        <span class="text-muted">({{ s.suggested_by_role | replace('_',' ') | title }})</span>
+                    </td>
+                    <td class="text-muted small">{{ s.notes or '—' }}</td>
+                    <td class="text-muted small">{{ s.created_at | timeago }}</td>
+                    <td>
+                        <div class="d-flex gap-2 align-items-center">
+                            <form method="POST" class="d-flex gap-1 align-items-center">
+                                <input type="hidden" name="action" value="approve">
+                                <input type="hidden" name="suggestion_id" value="{{ s.suggestion_id }}">
+                                <input type="text" name="review_notes" class="form-control form-control-sm"
+                                       placeholder="Optional note..." style="width:120px;">
+                                <button type="submit" class="btn btn-sm btn-success text-nowrap">
+                                    <i class="bi bi-check2"></i> Approve
+                                </button>
+                            </form>
+                            <form method="POST">
+                                <input type="hidden" name="action" value="reject">
+                                <input type="hidden" name="suggestion_id" value="{{ s.suggestion_id }}">
+                                <button type="submit" class="btn btn-sm btn-outline-danger"
+                                        onclick="return confirm('Reject this suggestion?')">
+                                    <i class="bi bi-x"></i>
+                                </button>
+                            </form>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% else %}
+<div class="alert alert-success mb-4">
+    <i class="bi bi-check-circle me-1"></i> No pending suggestions — all clear.
+</div>
+{% endif %}
+
+<!-- Direct update section -->
+<h6 class="text-uppercase text-muted fw-semibold mb-3" style="letter-spacing:0.08em;font-size:0.75rem;">
+    <i class="bi bi-geo-alt me-1"></i>Study Spaces &amp; Labs
+</h6>
+{% set physical = services | selectattr('service_type', 'equalto', 'physical') | list %}
+<div class="card mb-4">
+    <div class="card-body p-0">
+        <table class="table table-hover align-middle mb-0">
+            <thead><tr><th></th><th>Space / Location</th><th>Owner</th><th>Current Status</th><th>Last Updated</th><th>Update</th></tr></thead>
+            <tbody>
+                {% for s in physical %}
+                <tr>
+                    <td>
+                        {% if s.status == 'operational' %}<i class="bi bi-check-circle-fill text-success fs-5"></i>
+                        {% elif s.status == 'degraded' %}<i class="bi bi-dash-circle-fill text-warning fs-5"></i>
+                        {% elif s.status == 'outage' %}<i class="bi bi-x-circle-fill text-danger fs-5"></i>
+                        {% elif s.status == 'maintenance' %}<i class="bi bi-tools text-secondary fs-5"></i>{% endif %}
+                    </td>
+                    <td class="fw-semibold">{{ s.name }}</td>
+                    <td><span class="badge bg-light text-dark border">{{ service_owner.get(s.service_id, '?') }}</span></td>
+                    <td>
+                        {% if s.status == 'operational' %}<span class="badge bg-success">Open</span>
+                        {% elif s.status == 'degraded' %}<span class="badge bg-warning text-dark">Limited</span>
+                        {% elif s.status == 'outage' %}<span class="badge bg-danger">Closed</span>
+                        {% elif s.status == 'maintenance' %}<span class="badge bg-secondary">Maintenance</span>{% endif %}
+                    </td>
+                    <td class="text-muted small">{{ s.last_updated | timeago }}</td>
+                    <td>
+                        <form method="POST" class="d-flex gap-2">
+                            <input type="hidden" name="action" value="direct_update">
+                            <input type="hidden" name="service_id" value="{{ s.service_id }}">
+                            <select name="status" class="form-select form-select-sm" style="width:auto;">
+                                <option value="operational"  {% if s.status=='operational' %}selected{% endif %}>Open</option>
+                                <option value="degraded"     {% if s.status=='degraded' %}selected{% endif %}>Limited</option>
+                                <option value="outage"       {% if s.status=='outage' %}selected{% endif %}>Closed</option>
+                                <option value="maintenance"  {% if s.status=='maintenance' %}selected{% endif %}>Maintenance</option>
+                            </select>
+                            <button type="submit" class="btn btn-sm btn-outline-primary text-nowrap">Update</button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<h6 class="text-uppercase text-muted fw-semibold mb-3" style="letter-spacing:0.08em;font-size:0.75rem;">
+    <i class="bi bi-display me-1"></i>Digital Platforms
+</h6>
+{% set digital = services | selectattr('service_type', 'equalto', 'digital') | list %}
+<div class="card mb-5">
+    <div class="card-body p-0">
+        <table class="table table-hover align-middle mb-0">
+            <thead><tr><th></th><th>Platform</th><th>Owner</th><th>Current Status</th><th>Last Updated</th><th>Update</th></tr></thead>
+            <tbody>
+                {% for s in digital %}
+                <tr>
+                    <td>
+                        {% if s.status == 'operational' %}<i class="bi bi-check-circle-fill text-success fs-5"></i>
+                        {% elif s.status == 'degraded' %}<i class="bi bi-dash-circle-fill text-warning fs-5"></i>
+                        {% elif s.status == 'outage' %}<i class="bi bi-x-circle-fill text-danger fs-5"></i>
+                        {% elif s.status == 'maintenance' %}<i class="bi bi-tools text-secondary fs-5"></i>{% endif %}
+                    </td>
+                    <td class="fw-semibold">{{ s.name }}</td>
+                    <td><span class="badge bg-light text-dark border">{{ service_owner.get(s.service_id, '?') }}</span></td>
+                    <td>
+                        {% if s.status == 'operational' %}<span class="badge bg-success">Online</span>
+                        {% elif s.status == 'degraded' %}<span class="badge bg-warning text-dark">Degraded</span>
+                        {% elif s.status == 'outage' %}<span class="badge bg-danger">Down</span>
+                        {% elif s.status == 'maintenance' %}<span class="badge bg-secondary">Maintenance</span>{% endif %}
+                    </td>
+                    <td class="text-muted small">{{ s.last_updated | timeago }}</td>
+                    <td>
+                        <form method="POST" class="d-flex gap-2">
+                            <input type="hidden" name="action" value="direct_update">
+                            <input type="hidden" name="service_id" value="{{ s.service_id }}">
+                            <select name="status" class="form-select form-select-sm" style="width:auto;">
+                                <option value="operational"  {% if s.status=='operational' %}selected{% endif %}>Online</option>
+                                <option value="degraded"     {% if s.status=='degraded' %}selected{% endif %}>Degraded</option>
+                                <option value="outage"       {% if s.status=='outage' %}selected{% endif %}>Down</option>
+                                <option value="maintenance"  {% if s.status=='maintenance' %}selected{% endif %}>Maintenance</option>
+                            </select>
+                            <button type="submit" class="btn btn-sm btn-outline-primary text-nowrap">Update</button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- History of reviewed suggestions -->
+{% set reviewed = suggestions | rejectattr('status','equalto','pending') | list %}
+{% if reviewed %}
+<h6 class="text-uppercase text-muted fw-semibold mb-3" style="letter-spacing:0.08em;font-size:0.75rem;">
+    <i class="bi bi-clock-history me-1"></i>Recent Decisions
+</h6>
+<div class="card">
+    <div class="card-body p-0">
+        <table class="table table-sm mb-0">
+            <thead><tr><th>Service</th><th>Suggested</th><th>By</th><th>Decision</th><th>Reviewed</th><th>Notes</th></tr></thead>
+            <tbody>
+                {% for s in reviewed[:20] %}
+                <tr>
+                    <td>{{ s.service_name }}</td>
+                    <td>
+                        {% if s.suggested_status == 'operational' %}<span class="badge bg-success">Operational</span>
+                        {% elif s.suggested_status == 'degraded' %}<span class="badge bg-warning text-dark">Degraded</span>
+                        {% elif s.suggested_status == 'outage' %}<span class="badge bg-danger">Outage</span>
+                        {% elif s.suggested_status == 'maintenance' %}<span class="badge bg-secondary">Maintenance</span>{% endif %}
+                    </td>
+                    <td class="text-muted small">{{ s.suggested_by_name }}</td>
+                    <td>
+                        {% if s.status == 'approved' %}<span class="badge bg-success">Approved</span>
+                        {% else %}<span class="badge bg-danger">Rejected</span>{% endif %}
+                    </td>
+                    <td class="text-muted small">{{ s.reviewed_at | timeago if s.reviewed_at else '—' }}</td>
+                    <td class="text-muted small">{{ s.review_notes or '—' }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endif %}
+{% endblock %}

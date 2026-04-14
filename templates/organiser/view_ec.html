@@ -90,20 +90,6 @@
         </div>
         {% endif %}
 
-        <!-- Attachments (read-only) -->
-        <div class="card mb-4">
-            <div class="card-header bg-white">
-                <h6 class="mb-0"><i class="bi bi-paperclip me-1"></i>Evidence / Attachments ({{ attachments|length }})</h6>
-            </div>
-            <div class="card-body">
-                {% for att in attachments %}
-                {% include 'partials/attachment_row.html' %}
-                {% else %}
-                <p class="text-muted mb-0">No evidence uploaded.</p>
-                {% endfor %}
-            </div>
-        </div>
-
         <div class="alert alert-info">
             <i class="bi bi-info-circle me-1"></i>
             Module organisers have read-only access to EC applications. Decisions are made by the Student Support Team.

@@ -26,7 +26,7 @@ def init_db():
             password   TEXT NOT NULL,
             name       TEXT NOT NULL,
             role       TEXT NOT NULL CHECK(role IN (
-                'student','sst_admin','its_staff','lab_technician','module_organiser'
+                'student','sst_admin','its_staff','lab_technician','module_organiser','admin'
             )),
             year_group TEXT DEFAULT NULL
         )
@@ -200,6 +200,27 @@ def init_db():
         )
     """)
 
+    # ── SERVICE SUGGESTIONS ───────────────────────────────────────────────
+    db.execute("""
+        CREATE TABLE service_suggestions (
+            suggestion_id    INTEGER PRIMARY KEY AUTOINCREMENT,
+            service_id       INTEGER NOT NULL,
+            suggested_status TEXT NOT NULL
+                CHECK(suggested_status IN ('operational','degraded','outage','maintenance')),
+            suggested_by     INTEGER NOT NULL,
+            notes            TEXT,
+            status           TEXT NOT NULL DEFAULT 'pending'
+                CHECK(status IN ('pending','approved','rejected')),
+            created_at       TEXT NOT NULL,
+            reviewed_by      INTEGER,
+            reviewed_at      TEXT,
+            review_notes     TEXT,
+            FOREIGN KEY (service_id)  REFERENCES service_status(service_id),
+            FOREIGN KEY (suggested_by) REFERENCES users(user_id),
+            FOREIGN KEY (reviewed_by)  REFERENCES users(user_id)
+        )
+    """)
+
     # ══════════════════════════════════════════════════════════════════════
     # SEED DATA
     # ══════════════════════════════════════════════════════════════════════
@@ -225,6 +246,8 @@ def init_db():
     db.execute("INSERT INTO categories VALUES (6,'General Enquiry',1)")
 
     # ── Users (user_id, email, password, name, role, year_group) ──────────
+    # System Admin
+    db.execute("INSERT INTO users VALUES (0,'admin@qmul.ac.uk','password','System Admin','admin',NULL)")
     # SST (2 admins)
     db.execute("INSERT INTO users VALUES (1,'sst@qmul.ac.uk','password','Sarah Williams','sst_admin',NULL)")
     db.execute("INSERT INTO users VALUES (2,'sst2@qmul.ac.uk','password','Mark Thompson','sst_admin',NULL)")
@@ -442,6 +465,8 @@ def init_db():
     print("MODULE ORGANISER")
     print("  organiser@qmul.ac.uk  / password  – Dr. David Brown (Year 1 & 2)")
     print("  organiser2@qmul.ac.uk / password  – Dr. Aisha Khan  (Year 2 & 3)")
+    print("SYSTEM ADMIN")
+    print("  admin@qmul.ac.uk      / password  – System Admin")
 
 
 if __name__ == '__main__':

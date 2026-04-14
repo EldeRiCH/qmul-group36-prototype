@@ -1,0 +1,101 @@
+{% extends "base.html" %}
+{% block title %}Edit User — {{ user.name }}{% endblock %}
+
+{% block content %}
+<div class="d-flex align-items-center mb-4">
+    <a href="{{ url_for('admin_dashboard') }}" class="btn btn-sm btn-outline-secondary me-3">
+        <i class="bi bi-arrow-left"></i> Back
+    </a>
+    <h4 class="mb-0"><i class="bi bi-pencil-square me-2"></i>Edit User</h4>
+</div>
+
+<div class="row justify-content-center">
+    <div class="col-lg-6">
+        <div class="card">
+            <div class="card-header bg-white">
+                <div class="d-flex align-items-center gap-2">
+                    <div class="rounded-circle d-flex align-items-center justify-content-center text-white flex-shrink-0"
+                         style="width:36px;height:36px;background:#003B5C;font-size:0.9rem;">
+                        {{ user.name[0] | upper }}
+                    </div>
+                    <div>
+                        <div class="fw-semibold">{{ user.name }}</div>
+                        <div class="text-muted small">{{ user.email }}</div>
+                    </div>
+                </div>
+            </div>
+            <div class="card-body p-4">
+                <form method="POST">
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Full Name <span class="text-danger">*</span></label>
+                        <input type="text" name="name" class="form-control" value="{{ user.name }}" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">QMUL Email <span class="text-danger">*</span></label>
+                        <input type="email" name="email" class="form-control" value="{{ user.email }}" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Role <span class="text-danger">*</span></label>
+                        <select name="role" class="form-select" id="roleSelect" required onchange="toggleYearGroup(this.value)">
+                            <option value="student"          {% if user.role == 'student' %}selected{% endif %}>Student</option>
+                            <option value="sst_admin"        {% if user.role == 'sst_admin' %}selected{% endif %}>SST Admin</option>
+                            <option value="its_staff"        {% if user.role == 'its_staff' %}selected{% endif %}>ITS Staff</option>
+                            <option value="lab_technician"   {% if user.role == 'lab_technician' %}selected{% endif %}>Lab Technician</option>
+                            <option value="module_organiser" {% if user.role == 'module_organiser' %}selected{% endif %}>Module Organiser</option>
+                            <option value="admin"            {% if user.role == 'admin' %}selected{% endif %}>System Admin</option>
+                        </select>
+                    </div>
+                    <div class="mb-3" id="yearGroupRow" style="display:none;">
+                        <label class="form-label fw-semibold">Year Group</label>
+                        <select name="year_group" class="form-select">
+                            <option value="">-- Select --</option>
+                            <option value="Year 1" {% if user.year_group == 'Year 1' %}selected{% endif %}>Year 1</option>
+                            <option value="Year 2" {% if user.year_group == 'Year 2' %}selected{% endif %}>Year 2</option>
+                            <option value="Year 3" {% if user.year_group == 'Year 3' %}selected{% endif %}>Year 3</option>
+                            <option value="Year 4" {% if user.year_group == 'Year 4' %}selected{% endif %}>Year 4</option>
+                        </select>
+                    </div>
+                    <hr class="my-3">
+                    <div class="mb-4">
+                        <label class="form-label fw-semibold">New Password <span class="text-muted fw-normal small">(leave blank to keep current)</span></label>
+                        <div class="input-group">
+                            <input type="password" name="password" class="form-control" id="pwInput"
+                                   placeholder="Enter new password to change it">
+                            <button class="btn btn-outline-secondary" type="button" onclick="togglePw()">
+                                <i class="bi bi-eye" id="pwIcon"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-primary" style="background-color:#003B5C;border-color:#003B5C;">
+                            <i class="bi bi-check2 me-1"></i> Save Changes
+                        </button>
+                        <a href="{{ url_for('admin_dashboard') }}" class="btn btn-outline-secondary">Cancel</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function toggleYearGroup(role) {
+    document.getElementById('yearGroupRow').style.display = (role === 'student') ? '' : 'none';
+}
+toggleYearGroup(document.getElementById('roleSelect').value);
+
+function togglePw() {
+    const inp  = document.getElementById('pwInput');
+    const icon = document.getElementById('pwIcon');
+    if (inp.type === 'password') {
+        inp.type = 'text';
+        icon.className = 'bi bi-eye-slash';
+    } else {
+        inp.type = 'password';
+        icon.className = 'bi bi-eye';
+    }
+}
+</script>
+{% endblock %}

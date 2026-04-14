@@ -1,0 +1,188 @@
+{% extends "base.html" %}
+{% block title %}Admin — User Management{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h4 class="mb-0"><i class="bi bi-shield-lock me-2"></i>System Administration</h4>
+    <a href="{{ url_for('admin_add_user') }}" class="btn btn-primary" style="background-color:#003B5C;border-color:#003B5C;">
+        <i class="bi bi-person-plus me-1"></i> Add New User
+    </a>
+</div>
+
+<!-- Role filter tabs + search bar -->
+<div class="card mb-3">
+    <div class="card-body py-2 px-3 d-flex flex-wrap align-items-center gap-2 justify-content-between">
+        <!-- Role tabs -->
+        <div class="d-flex flex-wrap gap-1" id="roleTabs">
+            <button class="btn btn-sm active-role-btn" data-role="all"
+                    style="background:#003B5C;color:#fff;border:none;border-radius:6px;">
+                All <span class="badge bg-white text-dark ms-1" id="cnt-all">{{ users|length }}</span>
+            </button>
+            {% set role_meta = [
+                ('student',          'Students',          'bg-success'),
+                ('sst_admin',        'SST Admin',         'bg-primary'),
+                ('its_staff',        'ITS Staff',         'bg-info text-dark'),
+                ('lab_technician',   'Lab Tech',          'bg-warning text-dark'),
+                ('module_organiser', 'Organiser',         'bg-secondary'),
+                ('admin',            'System Admin',      'bg-dark'),
+            ] %}
+            {% for role_val, label, badge_cls in role_meta %}
+            {% set cnt = users | selectattr('role','equalto', role_val) | list | length %}
+            <button class="btn btn-sm btn-outline-secondary role-filter-btn"
+                    data-role="{{ role_val }}" style="border-radius:6px;">
+                {{ label }}
+                <span class="badge {{ badge_cls }} ms-1" style="font-size:0.65rem;" id="cnt-{{ role_val }}">{{ cnt }}</span>
+            </button>
+            {% endfor %}
+        </div>
+        <!-- Search -->
+        <div class="input-group input-group-sm" style="max-width:260px;">
+            <span class="input-group-text bg-white"><i class="bi bi-search text-muted"></i></span>
+            <input type="text" id="userSearch" class="form-control border-start-0"
+                   placeholder="Search name, email or ID…">
+        </div>
+    </div>
+</div>
+
+<!-- Active filter label -->
+<div class="mb-2 small text-muted" id="filterLabel">
+    Showing all <strong id="visibleCount">{{ users|length }}</strong> users
+</div>
+
+<!-- User table -->
+<div class="card">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0" id="userTable">
+                <thead>
+                    <tr>
+                        <th style="width:60px;">ID</th>
+                        <th>Name</th>
+                        <th>Email</th>
+                        <th style="width:170px;">Role</th>
+                        <th style="width:90px;">Year</th>
+                        <th style="width:110px;"></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for user in users %}
+                    {% set role_colours = {
+                        'admin': 'bg-dark',
+                        'sst_admin': 'bg-primary',
+                        'its_staff': 'bg-info text-dark',
+                        'lab_technician': 'bg-warning text-dark',
+                        'module_organiser': 'bg-secondary',
+                        'student': 'bg-success'
+                    } %}
+                    <tr data-role="{{ user.role }}"
+                        data-search="#{{ user.user_id }} {{ user.name }} {{ user.email }} {{ user.role }}">
+                        <td>
+                            <span class="badge bg-light text-dark border"
+                                  style="font-size:0.75rem; font-family:monospace;">
+                                #{{ user.user_id }}
+                            </span>
+                        </td>
+                        <td class="fw-semibold">{{ user.name }}</td>
+                        <td class="text-muted small">{{ user.email }}</td>
+                        <td>
+                            <span class="badge {{ role_colours.get(user.role, 'bg-secondary') }}">
+                                {{ user.role | replace('_',' ') | title }}
+                            </span>
+                        </td>
+                        <td class="text-muted small">{{ user.year_group or '—' }}</td>
+                        <td>
+                            <div class="d-flex gap-1">
+                                <a href="{{ url_for('admin_edit_user', user_id=user.user_id) }}"
+                                   class="btn btn-sm btn-outline-primary" title="Edit user">
+                                    <i class="bi bi-pencil"></i>
+                                </a>
+                                {% if user.user_id != current_user_id %}
+                                <form method="POST" action="{{ url_for('admin_delete_user', user_id=user.user_id) }}"
+                                      onsubmit="return confirm('Delete {{ user.name }}? This cannot be undone.')">
+                                    <button type="submit" class="btn btn-sm btn-outline-danger" title="Delete user">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </form>
+                                {% endif %}
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Empty state -->
+        <div id="emptyState" class="text-center text-muted py-5" style="display:none;">
+            <i class="bi bi-person-x fs-2 d-block mb-2"></i>
+            No users match your search.
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function () {
+    const rows        = Array.from(document.querySelectorAll('#userTable tbody tr'));
+    const searchInput = document.getElementById('userSearch');
+    const filterLabel = document.getElementById('filterLabel');
+    const visibleCount= document.getElementById('visibleCount');
+    const emptyState  = document.getElementById('emptyState');
+    const roleBtns    = document.querySelectorAll('.role-filter-btn, .active-role-btn');
+
+    let activeRole = 'all';
+    let searchTerm = '';
+
+    // Style constants
+    const activeStyle  = 'background:#003B5C;color:#fff;border:none;border-radius:6px;';
+    const defaultStyle = 'border-radius:6px;';
+
+    function applyFilters() {
+        let count = 0;
+        rows.forEach(function (row) {
+            const roleMatch   = (activeRole === 'all') || (row.dataset.role === activeRole);
+            const searchMatch = (row.dataset.search || '').toLowerCase().includes(searchTerm);
+            const show = roleMatch && searchMatch;
+            row.style.display = show ? '' : 'none';
+            if (show) count++;
+        });
+
+        visibleCount.textContent = count;
+
+        // Update label
+        const roleLabel = activeRole === 'all' ? 'all roles' : activeRole.replace(/_/g, ' ');
+        filterLabel.innerHTML = `Showing <strong>${count}</strong> user${count !== 1 ? 's' : ''}` +
+            (activeRole !== 'all' ? ` &mdash; <span class="text-capitalize">${roleLabel}</span>` : '') +
+            (searchTerm ? ` matching "<em>${searchTerm}</em>"` : '');
+
+        emptyState.style.display = count === 0 ? '' : 'none';
+    }
+
+    // Role tab clicks
+    roleBtns.forEach(function (btn) {
+        btn.addEventListener('click', function () {
+            activeRole = this.dataset.role;
+            // Update button styles
+            roleBtns.forEach(function (b) {
+                b.style.cssText = defaultStyle;
+                b.classList.remove('btn-outline-secondary');
+                b.classList.add('btn-outline-secondary');
+            });
+            this.style.cssText = activeStyle;
+            this.classList.remove('btn-outline-secondary');
+            applyFilters();
+        });
+    });
+
+    // Search input
+    searchInput.addEventListener('input', function () {
+        searchTerm = this.value.toLowerCase().trim();
+        applyFilters();
+    });
+
+    // Initialise
+    applyFilters();
+})();
+</script>
+{% endblock %}

@@ -24,6 +24,21 @@ ALLOWED_EXTENSIONS = {'pdf', 'png', 'jpg', 'jpeg', 'doc', 'docx'}
 
 DATABASE = os.path.join(os.path.dirname(__file__), 'database.db')
 
+# Which services each team type can suggest changes for (by service_id)
+SERVICE_TEAM_OWNERSHIP = {
+    'SST': [4, 5, 6, 7, 8],   # Library, The Nest, The Hive, MySIS, QMplus
+    'ITS': [2, 3],             # ITL, Temporary Building
+    'LAB': [1],                # Engineering Lab
+}
+# Reverse: service_id → team_type
+SERVICE_OWNER = {sid: team for team, sids in SERVICE_TEAM_OWNERSHIP.items() for sid in sids}
+
+ROLE_TEAM_TYPE = {
+    'sst_admin':      'SST',
+    'its_staff':      'ITS',
+    'lab_technician': 'LAB',
+}
+
 
 # ──────────────────────────────────────────────
 # DATABASE HELPERS
@@ -60,6 +75,39 @@ def execute_db(query, args=()):
 
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
+
+def migrate_db():
+    """Apply additive migrations to an existing database (safe to run repeatedly)."""
+    db = sqlite3.connect(DATABASE)
+    # Add service_suggestions table if missing
+    db.execute("""
+        CREATE TABLE IF NOT EXISTS service_suggestions (
+            suggestion_id    INTEGER PRIMARY KEY AUTOINCREMENT,
+            service_id       INTEGER NOT NULL,
+            suggested_status TEXT NOT NULL,
+            suggested_by     INTEGER NOT NULL,
+            notes            TEXT,
+            status           TEXT NOT NULL DEFAULT 'pending',
+            created_at       TEXT NOT NULL,
+            reviewed_by      INTEGER,
+            reviewed_at      TEXT,
+            review_notes     TEXT
+        )
+    """)
+    # Add admin user if not present (INSERT OR IGNORE works because email is UNIQUE)
+    db.execute(
+        "INSERT OR IGNORE INTO users (email, password, name, role) VALUES (?,?,?,?)",
+        ('admin@qmul.ac.uk', 'password', 'System Admin', 'admin')
+    )
+    db.commit()
+    db.close()
+
+
+# Run migrations once on startup
+with app.app_context():
+    if os.path.exists(DATABASE):
+        migrate_db()
 
 
 # ── Reference number formatters ──────────────────────────────────────────────
@@ -143,6 +191,13 @@ def inject_user():
         any_issue = any(s['status'] != 'operational' for s in services)
         ctx['service_status_ok'] = not any_issue
         ctx['services'] = services
+        # Pending suggestions count for admin navbar badge
+        if session.get('role') == 'admin':
+            row = query_db(
+                "SELECT COUNT(*) as cnt FROM service_suggestions WHERE status = 'pending'",
+                one=True
+            )
+            ctx['pending_suggestions_count'] = row['cnt'] if row else 0
     return ctx
 
 
@@ -206,6 +261,8 @@ def dashboard():
         return redirect(url_for('lab_dashboard'))
     elif role == 'module_organiser':
         return redirect(url_for('organiser_dashboard'))
+    elif role == 'admin':
+        return redirect(url_for('admin_dashboard'))
     else:
         flash('Your role is not recognised.', 'danger')
         return redirect(url_for('logout'))
@@ -785,8 +842,12 @@ def sst_manage_ticket(ticket_id):
         elif action == 'reassign':
             new_team_id      = request.form.get('new_team_id')
             new_category_id  = request.form.get('new_category_id')
-            new_assigned_uid = request.form.get('assigned_user_id')
+            new_assigned_uid = request.form.get('assigned_user_id') or None
+            reassign_note    = request.form.get('reassign_note', '').strip()
+
+            changes = []
             if new_team_id:
+                team = query_db('SELECT name FROM teams WHERE team_id = ?', (new_team_id,), one=True)
                 existing = query_db(
                     "SELECT assignment_id FROM assignments WHERE case_id = ? AND case_type = 'ticket'",
                     (ticket_id,), one=True
@@ -795,7 +856,7 @@ def sst_manage_ticket(ticket_id):
                     execute_db(
                         'UPDATE assignments SET team_id = ?, assigned_user_id = ?, assigned_at = ? '
                         'WHERE case_id = ? AND case_type = ?',
-                        (new_team_id, new_assigned_uid or None,
+                        (new_team_id, new_assigned_uid,
                          datetime.now().isoformat(), ticket_id, 'ticket')
                     )
                 else:
@@ -803,12 +864,28 @@ def sst_manage_ticket(ticket_id):
                         'INSERT INTO assignments (case_id, case_type, team_id, assigned_user_id, assigned_at) '
                         'VALUES (?, ?, ?, ?, ?)',
                         (ticket_id, 'ticket', new_team_id,
-                         new_assigned_uid or None, datetime.now().isoformat())
+                         new_assigned_uid, datetime.now().isoformat())
                     )
+                changes.append(f'Team → {team["name"] if team else new_team_id}')
+
             if new_category_id:
+                cat = query_db('SELECT name FROM categories WHERE category_id = ?', (new_category_id,), one=True)
                 execute_db('UPDATE support_tickets SET category_id = ? WHERE ticket_id = ?',
                            (new_category_id, ticket_id))
-            flash('Ticket reassigned.', 'success')
+                changes.append(f'Category → {cat["name"] if cat else new_category_id}')
+
+            if changes:
+                note_text = (reassign_note + ' | ' if reassign_note else '') + ', '.join(changes)
+                old_ticket = query_db('SELECT status FROM support_tickets WHERE ticket_id = ?', (ticket_id,), one=True)
+                execute_db(
+                    'INSERT INTO status_changes (case_id, case_type, old_status, new_status, changed_by, notes, changed_at) '
+                    'VALUES (?, ?, ?, ?, ?, ?, ?)',
+                    (ticket_id, 'ticket', old_ticket['status'], old_ticket['status'],
+                     session['user_id'], f'[Reassigned] {note_text}', datetime.now().isoformat())
+                )
+                flash(f'Ticket reassigned: {", ".join(changes)}.', 'success')
+            else:
+                flash('No changes made — select a team or category to reassign.', 'warning')
 
         elif action == 'add_file':
             files = request.files.getlist('files')
@@ -1304,26 +1381,280 @@ def student_services():
 
 
 # ──────────────────────────────────────────────
-# SERVICE STATUS (SST admin update)
+# SERVICE STATUS — SUGGESTION MODEL
 # ──────────────────────────────────────────────
+
+def _submit_service_suggestion(service_id, suggested_status, notes):
+    """Helper: inserts a suggestion row for the current user."""
+    execute_db(
+        'INSERT INTO service_suggestions (service_id, suggested_status, suggested_by, notes, status, created_at) '
+        'VALUES (?, ?, ?, ?, ?, ?)',
+        (service_id, suggested_status, session['user_id'], notes or None,
+         'pending', datetime.now().isoformat())
+    )
+
 
 @app.route('/sst/services', methods=['GET', 'POST'])
 @login_required
 @role_required('sst_admin')
 def sst_services():
     if request.method == 'POST':
-        service_id = request.form.get('service_id')
+        service_id = int(request.form.get('service_id', 0))
         new_status = request.form.get('status')
+        notes      = request.form.get('notes', '').strip()
         if service_id and new_status:
-            execute_db(
-                'UPDATE service_status SET status = ?, last_updated = ? WHERE service_id = ?',
-                (new_status, datetime.now().isoformat(), service_id)
-            )
-            flash('Service status updated.', 'success')
+            owned = SERVICE_TEAM_OWNERSHIP.get('SST', [])
+            if service_id in owned:
+                _submit_service_suggestion(service_id, new_status, notes)
+                flash('Suggestion submitted. Awaiting admin approval.', 'info')
+            else:
+                flash('You can only suggest changes for services managed by SST.', 'warning')
         return redirect(url_for('sst_services'))
 
-    services = query_db('SELECT * FROM service_status ORDER BY name')
-    return render_template('sst/services.html', services=services)
+    services     = query_db('SELECT * FROM service_status ORDER BY service_type, name')
+    sst_services_ids = SERVICE_TEAM_OWNERSHIP.get('SST', [])
+    pending = query_db(
+        'SELECT ss.*, s.name as service_name FROM service_suggestions ss '
+        'JOIN service_status s ON ss.service_id = s.service_id '
+        'WHERE ss.suggested_by = ? AND ss.status = ? ORDER BY ss.created_at DESC',
+        (session['user_id'], 'pending')
+    )
+    return render_template('sst/services.html', services=services,
+                           owned_ids=sst_services_ids, pending=pending,
+                           service_owner=SERVICE_OWNER)
+
+
+@app.route('/its/services', methods=['GET', 'POST'])
+@login_required
+@role_required('its_staff')
+def its_services():
+    if request.method == 'POST':
+        service_id = int(request.form.get('service_id', 0))
+        new_status = request.form.get('status')
+        notes      = request.form.get('notes', '').strip()
+        if service_id and new_status:
+            owned = SERVICE_TEAM_OWNERSHIP.get('ITS', [])
+            if service_id in owned:
+                _submit_service_suggestion(service_id, new_status, notes)
+                flash('Suggestion submitted. Awaiting admin approval.', 'info')
+            else:
+                flash('You can only suggest changes for services managed by ITS.', 'warning')
+        return redirect(url_for('its_services'))
+
+    services  = query_db('SELECT * FROM service_status ORDER BY service_type, name')
+    its_ids   = SERVICE_TEAM_OWNERSHIP.get('ITS', [])
+    pending = query_db(
+        'SELECT ss.*, s.name as service_name FROM service_suggestions ss '
+        'JOIN service_status s ON ss.service_id = s.service_id '
+        'WHERE ss.suggested_by = ? AND ss.status = ? ORDER BY ss.created_at DESC',
+        (session['user_id'], 'pending')
+    )
+    return render_template('its/services.html', services=services,
+                           owned_ids=its_ids, pending=pending,
+                           service_owner=SERVICE_OWNER)
+
+
+@app.route('/lab/services', methods=['GET', 'POST'])
+@login_required
+@role_required('lab_technician')
+def lab_services():
+    if request.method == 'POST':
+        service_id = int(request.form.get('service_id', 0))
+        new_status = request.form.get('status')
+        notes      = request.form.get('notes', '').strip()
+        if service_id and new_status:
+            owned = SERVICE_TEAM_OWNERSHIP.get('LAB', [])
+            if service_id in owned:
+                _submit_service_suggestion(service_id, new_status, notes)
+                flash('Suggestion submitted. Awaiting admin approval.', 'info')
+            else:
+                flash('You can only suggest changes for services managed by the Lab team.', 'warning')
+        return redirect(url_for('lab_services'))
+
+    services  = query_db('SELECT * FROM service_status ORDER BY service_type, name')
+    lab_ids   = SERVICE_TEAM_OWNERSHIP.get('LAB', [])
+    pending = query_db(
+        'SELECT ss.*, s.name as service_name FROM service_suggestions ss '
+        'JOIN service_status s ON ss.service_id = s.service_id '
+        'WHERE ss.suggested_by = ? AND ss.status = ? ORDER BY ss.created_at DESC',
+        (session['user_id'], 'pending')
+    )
+    return render_template('lab/services.html', services=services,
+                           owned_ids=lab_ids, pending=pending,
+                           service_owner=SERVICE_OWNER)
+
+
+# ──────────────────────────────────────────────
+# ADMIN ROUTES
+# ──────────────────────────────────────────────
+
+@app.route('/admin/dashboard')
+@login_required
+@role_required('admin')
+def admin_dashboard():
+    users = query_db('SELECT * FROM users ORDER BY role, name')
+    return render_template('admin/dashboard.html', users=users)
+
+
+@app.route('/admin/add-user', methods=['GET', 'POST'])
+@login_required
+@role_required('admin')
+def admin_add_user():
+    if request.method == 'POST':
+        name     = request.form.get('name', '').strip()
+        email    = request.form.get('email', '').strip()
+        password = request.form.get('password', '').strip()
+        role     = request.form.get('role', '').strip()
+        year_group = request.form.get('year_group', '').strip() or None
+
+        if not name or not email or not password or not role:
+            flash('Please fill in all required fields.', 'danger')
+            return render_template('admin/add_user.html')
+
+        existing = query_db('SELECT * FROM users WHERE email = ?', (email,), one=True)
+        if existing:
+            flash('A user with that email already exists.', 'danger')
+            return render_template('admin/add_user.html')
+
+        execute_db(
+            'INSERT INTO users (email, password, name, role, year_group) VALUES (?, ?, ?, ?, ?)',
+            (email, password, name, role, year_group)
+        )
+        flash(f'User {name} added successfully.', 'success')
+        return redirect(url_for('admin_dashboard'))
+
+    return render_template('admin/add_user.html')
+
+
+@app.route('/admin/edit-user/<int:user_id>', methods=['GET', 'POST'])
+@login_required
+@role_required('admin')
+def admin_edit_user(user_id):
+    user = query_db('SELECT * FROM users WHERE user_id = ?', (user_id,), one=True)
+    if not user:
+        flash('User not found.', 'danger')
+        return redirect(url_for('admin_dashboard'))
+
+    if request.method == 'POST':
+        name       = request.form.get('name', '').strip()
+        email      = request.form.get('email', '').strip()
+        role       = request.form.get('role', '').strip()
+        year_group = request.form.get('year_group', '').strip() or None
+        new_pw     = request.form.get('password', '').strip()
+
+        if not name or not email or not role:
+            flash('Name, email and role are required.', 'danger')
+            return render_template('admin/edit_user.html', user=user)
+
+        # Check email uniqueness (exclude current user)
+        clash = query_db('SELECT user_id FROM users WHERE email = ? AND user_id != ?', (email, user_id), one=True)
+        if clash:
+            flash('That email is already used by another account.', 'danger')
+            return render_template('admin/edit_user.html', user=user)
+
+        if new_pw:
+            execute_db(
+                'UPDATE users SET name=?, email=?, role=?, year_group=?, password=? WHERE user_id=?',
+                (name, email, role, year_group, new_pw, user_id)
+            )
+        else:
+            execute_db(
+                'UPDATE users SET name=?, email=?, role=?, year_group=? WHERE user_id=?',
+                (name, email, role, year_group, user_id)
+            )
+        flash(f'{name}\'s account updated.', 'success')
+        return redirect(url_for('admin_dashboard'))
+
+    return render_template('admin/edit_user.html', user=user)
+
+
+@app.route('/admin/delete-user/<int:user_id>', methods=['POST'])
+@login_required
+@role_required('admin')
+def admin_delete_user(user_id):
+    if user_id == session['user_id']:
+        flash('You cannot delete your own account.', 'danger')
+        return redirect(url_for('admin_dashboard'))
+    user = query_db('SELECT * FROM users WHERE user_id = ?', (user_id,), one=True)
+    if user:
+        execute_db('DELETE FROM users WHERE user_id = ?', (user_id,))
+        flash(f'User {user["name"]} deleted.', 'warning')
+    return redirect(url_for('admin_dashboard'))
+
+
+@app.route('/admin/services', methods=['GET', 'POST'])
+@login_required
+@role_required('admin')
+def admin_services():
+    if request.method == 'POST':
+        action = request.form.get('action')
+
+        if action == 'direct_update':
+            service_id = request.form.get('service_id')
+            new_status = request.form.get('status')
+            if service_id and new_status:
+                execute_db(
+                    'UPDATE service_status SET status = ?, last_updated = ? WHERE service_id = ?',
+                    (new_status, datetime.now().isoformat(), service_id)
+                )
+                flash('Service status updated directly.', 'success')
+
+        elif action == 'approve':
+            suggestion_id = request.form.get('suggestion_id')
+            review_notes  = request.form.get('review_notes', '').strip()
+            sugg = query_db('SELECT * FROM service_suggestions WHERE suggestion_id = ?', (suggestion_id,), one=True)
+            if sugg and sugg['status'] == 'pending':
+                execute_db(
+                    'UPDATE service_status SET status = ?, last_updated = ? WHERE service_id = ?',
+                    (sugg['suggested_status'], datetime.now().isoformat(), sugg['service_id'])
+                )
+                execute_db(
+                    'UPDATE service_suggestions SET status=?, reviewed_by=?, reviewed_at=?, review_notes=? '
+                    'WHERE suggestion_id=?',
+                    ('approved', session['user_id'], datetime.now().isoformat(), review_notes or None, suggestion_id)
+                )
+                flash('Suggestion approved and service status updated.', 'success')
+
+        elif action == 'reject':
+            suggestion_id = request.form.get('suggestion_id')
+            review_notes  = request.form.get('review_notes', '').strip()
+            execute_db(
+                'UPDATE service_suggestions SET status=?, reviewed_by=?, reviewed_at=?, review_notes=? '
+                'WHERE suggestion_id=?',
+                ('rejected', session['user_id'], datetime.now().isoformat(), review_notes or None, suggestion_id)
+            )
+            flash('Suggestion rejected.', 'warning')
+
+        return redirect(url_for('admin_services'))
+
+    services    = query_db('SELECT * FROM service_status ORDER BY service_type, name')
+    suggestions = query_db(
+        'SELECT ss.*, s.name as service_name, u.name as suggested_by_name, u.role as suggested_by_role '
+        'FROM service_suggestions ss '
+        'JOIN service_status s ON ss.service_id = s.service_id '
+        'JOIN users u ON ss.suggested_by = u.user_id '
+        'ORDER BY ss.status ASC, ss.created_at DESC'
+    )
+    pending_count = sum(1 for s in suggestions if s['status'] == 'pending')
+    return render_template('admin/services.html', services=services,
+                           suggestions=suggestions, pending_count=pending_count,
+                           service_owner=SERVICE_OWNER)
+
+
+# AJAX: staff members for a given team (used by reassign form)
+@app.route('/api/team/<int:team_id>/staff')
+@login_required
+def api_team_staff(team_id):
+    from flask import jsonify
+    team = query_db('SELECT team_type FROM teams WHERE team_id = ?', (team_id,), one=True)
+    if not team:
+        return jsonify([])
+    role_map = {'SST': 'sst_admin', 'ITS': 'its_staff', 'LAB': 'lab_technician'}
+    role = role_map.get(team['team_type'], '')
+    if not role:
+        return jsonify([])
+    staff = query_db('SELECT user_id, name FROM users WHERE role = ? ORDER BY name', (role,))
+    return jsonify([{'user_id': s['user_id'], 'name': s['name']} for s in staff])
 
 
 # ──────────────────────────────────────────────
