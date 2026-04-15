@@ -85,7 +85,7 @@ qmul-prototype/
 | 3. Student Use-Cases | — | Everything in `templates/student/`, student routes in `app.py` |
 | 4. SST/Admin Workflows | — | Everything in `templates/sst/`, SST routes in `app.py` |
 | 5. ITS + Lab Tech Workflows | — | `templates/its/`, `templates/lab/`, `templates/organiser/`, staff routes in `app.py` |
-| 6. Acceptance Test Lead | Weiee | Acceptance test document (separate Word doc) |
+| 6. Acceptance Test Lead | - | Acceptance test document (separate Word doc) |
 | 7. Presentation + QA Lead | — | Demo script, rehearsals, QA testing |
 
 ## Resetting the Database
