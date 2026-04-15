@@ -117,7 +117,7 @@ def init_db():
             status         TEXT NOT NULL DEFAULT 'Submitted'
                 CHECK(status IN (
                     'Submitted','Under Review','Approved','Rejected',
-                    'Action Required','On Hold','Withdrawn'
+                    'Action Required','Withdrawn'
                 )),
             is_draft       INTEGER NOT NULL DEFAULT 0,
             decision_notes TEXT,
@@ -424,11 +424,11 @@ def init_db():
     db.execute(f"INSERT INTO status_changes VALUES (26,3,'ec','Submitted','Action Required',1,'GP or wellbeing letter required.','{ts(5)}')")
     db.execute(f"INSERT INTO comments VALUES (5,3,'ec',1,'Please upload supporting documentation from a GP or QMUL Wellbeing service to proceed.','public','{ts(5)}')")
 
-    # EC 4 – On Hold (Emma, Year 1, module 2)
-    db.execute(f"INSERT INTO ec_applications VALUES (4,9,2,4,'Year 1','Bereavement','My grandmother passed away the week of the problem set deadline.','On Hold',0,'Awaiting confirmation of relationship from the university registry.',NULL,'{ts(14)}')")
+    # EC 4 – Under Review (Emma, Year 1, module 2)
+    db.execute(f"INSERT INTO ec_applications VALUES (4,9,2,4,'Year 1','Bereavement','My grandmother passed away the week of the problem set deadline.','Under Review',0,'Awaiting confirmation of relationship from the university registry.',NULL,'{ts(14)}')")
     db.execute(f"INSERT INTO assignments VALUES (14,4,'ec',1,NULL,'{ts(14)}',NULL)")
     db.execute(f"INSERT INTO status_changes VALUES (27,4,'ec',NULL,'Submitted',9,NULL,'{ts(14)}')")
-    db.execute(f"INSERT INTO status_changes VALUES (28,4,'ec','Submitted','On Hold',1,'Registry confirmation pending.','{ts(8)}')")
+    db.execute(f"INSERT INTO status_changes VALUES (28,4,'ec','Submitted','Under Review',1,'Registry confirmation requested — awaiting response.','{ts(8)}')")
 
     # EC 5 – Draft (James, Year 2, module 4)
     db.execute(f"INSERT INTO ec_applications VALUES (5,10,4,7,'Year 2','Medical','I had a severe migraine during the coursework submission period.','Submitted',1,NULL,NULL,'{ts(1)}')")
