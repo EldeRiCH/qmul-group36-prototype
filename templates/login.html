@@ -2,19 +2,14 @@
 {% block title %}Sign In - QMUL Student Portal{% endblock %}
 
 {% block content %}
-<div class="d-flex flex-column align-items-center mt-4">
+<div class="d-flex flex-column align-items-center mt-5 pt-3">
 
     <!-- Hero header -->
     <div class="text-center mb-4">
-        <div class="d-inline-flex align-items-center justify-content-center rounded-3 mb-3"
-             style="width:80px;height:80px;background:linear-gradient(135deg,#003B5C,#004d7a);box-shadow:0 4px 16px rgba(0,59,92,0.3);">
-            <svg width="44" height="44" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M8 36 L8 20 L16 28 L24 12 L32 28 L40 20 L40 36 Z" fill="#c8a951"/>
-                <rect x="8" y="34" width="32" height="4" rx="1" fill="#c8a951"/>
-            </svg>
-        </div>
-        <h3 class="fw-bold mb-1" style="color:#003B5C;">Student Portal</h3>
-        <p class="text-muted mb-0">Queen Mary University of London</p>
+        <img src="{{ url_for('static', filename='img/qmul-logo.png') }}"
+             alt="Queen Mary University of London"
+             style="height:130px; width:auto; border-radius:12px;">
+        <p class="text-muted mt-3 mb-0" style="font-size:0.85rem; letter-spacing:0.03em;">Student Support &amp; Services Portal</p>
     </div>
 
     <!-- Login form card -->
